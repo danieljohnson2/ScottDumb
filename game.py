@@ -2,6 +2,7 @@ class Game():
         def __init__(self, extracted):
                 self.word_length = extracted.word_length
                 self.rooms = [Room(self, x.description) for x in extracted.rooms]
+                self.inventory = Room(self, "Inventory")
                 self.player_room = self.rooms[extracted.starting_room]
 
                 self.nouns = dict()
@@ -53,14 +54,23 @@ class Game():
                         r.up = resolve_room(src.up)
                         r.down = resolve_room(src.down)
 
+                self.items = []
+                for ei in extracted.items:
+                        item = Item(self, ei.name, self.get_noun(ei.carry_word))
+                        if ei.starting_room == -1: item.room = inventory
+                        else: item.room = self.rooms[ei.starting_room]
+                        self.items.append(item)
+
         def is_direction(self, word):
                 return word in self.directions
 
         def get_noun(self, text):
+                if text is None: return None
                 try: return self.nouns[normalize_word(text)]
                 except KeyError: raise KeyError(f"I don't know what '{text}' means.")
 
         def get_verb(self, text):
+                if text is None: return None
                 try: return self.verbs[normalize_word(text)]
                 except KeyError: raise KeyError(f"I don't know what '{text}' means.")
 
@@ -91,8 +101,7 @@ class Word():
 
         def __str__(self): return self.text
 
-class Room():
-        
+class Room():        
         def __init__(self, game, description):
                 self.game = game
                 self.description = description
@@ -105,6 +114,9 @@ class Room():
 
         def __repr__(self):
                 return self.description[:32]
+
+        def get_items(self):
+                return [i for i in self.game.items if i.room == self]
 
         def get_move(self, word):
                 choices = {
@@ -124,18 +136,32 @@ class Room():
                 else:
                         text = "I'm in a " + text
 
-                exits = ""
-                if self.north: exits += " North"
-                if self.south: exits += " South"
-                if self.east: exits += " East"
-                if self.west: exits += " West"
-                if self.up: exits += " Up"
-                if self.down: exits += " Down"
+                items = []
+                for item in self.get_items():
+                        items.append(item.name + ".")
 
-                if exits != "":
-                        text += "\n\nObvious exits:" + exits
+                if len(items) > 0:
+                        text += "\n\nVisible items: " + " ".join(items)
+
+                exits = []
+                if self.north: exits.append("North")
+                if self.south: exits.append("South")
+                if self.east: exits.append("East")
+                if self.west: exits.append("West")
+                if self.up: exits.append("Up")
+                if self.down: exits.append("Down")
+
+                if len(exits) > 0:
+                        text += "\n\nObvious exits: " + " ".join(exits)
 
                 return text
+
+class Item():
+        def __init__(self, game, name, carry_word):
+                self.game = game       
+                self.name = name         
+                self.carry_word = carry_word
+                self.room = None
 
 def normalize_word(word):
         return word[:3].upper()
