@@ -93,6 +93,14 @@ class Game():
 
                 return (verb, noun)
                 
+        def perform_command(self, verb, noun):
+                if (verb is None or verb == self.go_word) and self.is_direction(noun):
+                        next = self.player_room.get_move(noun)
+                        if next is None: raise ValueError(f"I can't go there!")
+                        self.player_room = next
+                        return self.player_room.look_text()
+                else:
+                        raise ValueError("I don't understand.")
 
 class Word():
         def __init__(self, aliases):
