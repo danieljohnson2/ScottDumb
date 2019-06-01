@@ -11,12 +11,12 @@ class Game():
                         for text in g:
                                 self.nouns[normalize_word(text)] = word
 
-                self.north_word = self.get_noun(extracted.nouns[1][0])
-                self.south_word = self.get_noun(extracted.nouns[2][0])
-                self.east_word = self.get_noun(extracted.nouns[3][0])
-                self.west_word = self.get_noun(extracted.nouns[4][0])
-                self.up_word = self.get_noun(extracted.nouns[5][0])
-                self.down_word = self.get_noun(extracted.nouns[6][0])
+                self.north_word = self.get_noun("NORTH")
+                self.south_word = self.get_noun("SOUTH")
+                self.east_word = self.get_noun("EAST")
+                self.west_word = self.get_noun("WEST")
+                self.up_word = self.get_noun("UP")
+                self.down_word = self.get_noun("DOWN")
                 self.directions = [
                         self.north_word, self.south_word,
                         self.east_word, self.west_word,
@@ -37,9 +37,9 @@ class Game():
                         for text in g:
                                 self.verbs[normalize_word(text)] = word
 
-                self.go_word = self.get_verb(extracted.verbs[1][0])
-                self.get_word = self.get_verb(extracted.verbs[10][0])
-                self.drop_word = self.get_verb(extracted.verbs[18][0])
+                self.go_word = self.get_verb("GO")
+                self.get_word = self.get_verb("GET")
+                self.drop_word = self.get_verb("DROP")
 
                 for i, r in enumerate(self.rooms):
                         src = extracted.rooms[i]
@@ -63,6 +63,13 @@ class Game():
 
         def is_direction(self, word):
                 return word in self.directions
+
+        def get_carry_item(self, word):
+                if word is not None:
+                        for i in self.items:
+                                if i.carry_word == word:
+                                        return i
+                return None
 
         def get_noun(self, text):
                 if text is None: return None
@@ -98,6 +105,18 @@ class Game():
                         next = self.player_room.get_move(noun)
                         if next is None: raise ValueError(f"I can't go there!")
                         self.player_room = next
+                        return self.player_room.look_text()
+                elif verb == self.get_word:
+                        item = self.get_carry_item(noun)
+                        if item is None: raise ValueError("I can't pick that up.")
+                        if item.room != self.player_room: raise ValueError("That isn't here.")
+                        item.room = self.inventory
+                        return self.player_room.look_text()
+                elif verb == self.drop_word:
+                        item = self.get_carry_item(noun)
+                        if item is None or item.room != self.inventory:
+                                raise ValueError("I'm not carrying that.")
+                        item.room = self.player_room
                         return self.player_room.look_text()
                 else:
                         raise ValueError("I don't understand.")
