@@ -5,5 +5,5 @@ from sys import argv
 f = open(argv[1], "r")
 ex = ExtractedFile(f)
 
-for m in ex.actions:
+for m in ex.items:
         print(vars(m))
