@@ -225,14 +225,14 @@ class Game():
 
         def get_item(self, item, as_user = True):
                 if as_user and item.room != self.player_room:
-                        raise WordError(word, "That isn't here.")
+                        raise ValueError("That isn't here.")
                 item.room = self.inventory
                 self.wants_room_update = True
                 if as_user: self.output_line("Taken.")
 
         def drop_item(self, item, as_user = True):
                 if as_user and (item is None or item.room != self.inventory):
-                        raise WordError(noun, "I'm not carrying that.")
+                        raise ValueError("I'm not carrying that.")
                 item.room = self.player_room
                 self.wants_room_update = True
                 if as_user: self.output_line("Dropped.")
