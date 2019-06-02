@@ -98,6 +98,16 @@ class Game():
                         else:
                                 self.logics.append(Command(self, extracted, ea))
 
+                self.output_text = ""
+
+        def output(self, text): self.output_text += text
+        def output_line(self, line = ""): self.output_text += line + "\n"
+
+        def extract_output(self):
+                out = self.output_text
+                self.output_text = ""
+                return out
+
         def get_carry_item(self, word):
                 """Looks up the item that can be picked up via "GET <word>"
                 
@@ -170,12 +180,10 @@ class Game():
 
                 This returns text to be displayed to the user before accepting input.
                 """
-                text = []
+
                 for l in self.logics:
                         if l.check_occurance():
-                                msg = l.execute()
-                                if msg != "": text.append(msg)
-                return "".join(text)
+                                l.execute()
 
         def perform_command(self, verb, noun):
                 """Executes a command given. Either verb or noun can be None.
@@ -196,14 +204,11 @@ class Game():
                         item = self.get_carry_item(noun)
                         if item is None: raise WordError(noun, "I can't pick that up.")
                         self.get_item(item)
-                        return "Taken."
                 elif verb == self.drop_word:
                         item = self.get_carry_item(noun)
                         self.drop_item(item)
-                        return "Dropped."
                 else:
                         raise ValueError("I don't understand.")
-                return ""
 
         def get_inventory_text(self):
                 text = "I am carrying the following:\n"
@@ -211,24 +216,26 @@ class Game():
                 if len(items) > 0:
                         text += " ".join(items)
                 else:
-                        text += "Nothing at all!"
+                        text += " Nothing at all!"
                 return text
 
         def move_player(self, new_room):
                 self.player_room = new_room
                 self.needs_room_update = True
 
-        def get_item(self, item, checked = True):
-                if checked and item.room != self.player_room:
+        def get_item(self, item, as_user = True):
+                if as_user and item.room != self.player_room:
                         raise WordError(word, "That isn't here.")
                 item.room = self.inventory
                 self.wants_room_update = True
+                if as_user: self.output_line("Taken.")
 
-        def drop_item(self, item, checked = True):
-                if checked and (item is None or item.room != self.inventory):
+        def drop_item(self, item, as_user = True):
+                if as_user and (item is None or item.room != self.inventory):
                         raise WordError(noun, "I'm not carrying that.")
                 item.room = self.player_room
                 self.wants_room_update = True
+                if as_user: self.output_line("Dropped.")
 
         def move_item(self, item, room):
                 item.room = room
