@@ -110,20 +110,20 @@ class ExtractedRoom():
 class ExtractedItem():
         """Contains the data for an item.
         
-        name - item name, displayed in 'look' text.
+        description - item description, displayed in 'look' text.
         starting_room - room where item starts.
         carry_word - word used to refer to this item when getting or
                      dropping it; if None item can't be carried.
         """
         def __init__(self, file):
-                self.name, extra = read_string_plus(file)
+                self.description, extra = read_string_plus(file)
                 self.starting_room = int(extra)
                 self.carry_word = None
 
-                if self.name.endswith("/"):
-                        wordstart = self.name.rfind("/", 0, len(self.name) - 1)
-                        self.carry_word = self.name[wordstart + 1:len(self.name) - 1]
-                        self.name = self.name[:wordstart]
+                if self.description.endswith("/"):
+                        wordstart = self.description.rfind("/", 0, len(self.description) - 1)
+                        self.carry_word = self.description[wordstart + 1:len(self.description) - 1]
+                        self.description = self.description[:wordstart]
 
 # Utility Functions
 

@@ -7,7 +7,7 @@ f = open(argv[1], "r")
 ex = ExtractedFile(f)
 g = Game(ex)
 
-print(g.player_room.look_text())
+print(g.player_room.get_look_text())
 
 while True:
         try:
@@ -18,5 +18,5 @@ while True:
                 response = g.perform_command(verb, noun)
                 if response != "": print(response)
         except Exception as e:
-                print(e)
+                print(str(e))
 

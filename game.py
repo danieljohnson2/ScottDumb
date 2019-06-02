@@ -1,15 +1,30 @@
 class Game():
+        """This is the root object containing the game state.
+
+        word_length - the length of Word object text
+        rooms - list of Rooms (but not 'inventory')
+        inventory - a Room holding the player's inventory
+        player_room - the room the player is in
+        items - list of all Items
+
+        north_word, south_word,
+        east_word, west_word,
+        up_word, down_word,
+        go_word, get_word, drop_word - predefined Word objects
+        directions - a list of all direction words above
+        """
+
         def __init__(self, extracted):
                 self.word_length = extracted.word_length
-                self.rooms = [Room(self, x.description) for x in extracted.rooms]
-                self.inventory = Room(self, "Inventory")
+                self.rooms = [Room(self, x) for x in extracted.rooms]
+                self.inventory = Room(self, description = "Inventory")
                 self.player_room = self.rooms[extracted.starting_room]
 
                 self.nouns = dict()
                 for i, g in enumerate(extracted.nouns):
                         word = Word(g)
                         for text in g:
-                                self.nouns[normalize_word(text)] = word
+                                self.nouns[self.normalize_word(text)] = word
 
                 self.north_word = self.get_noun("NORTH")
                 self.south_word = self.get_noun("SOUTH")
@@ -35,7 +50,7 @@ class Game():
                 for i, g in enumerate(extracted.verbs):
                         word = Word(g)
                         for text in g:
-                                self.verbs[normalize_word(text)] = word
+                                self.verbs[self.normalize_word(text)] = word
 
                 self.go_word = self.get_verb("GO")
                 self.get_word = self.get_verb("GET")
@@ -56,32 +71,57 @@ class Game():
 
                 self.items = []
                 for ei in extracted.items:
-                        item = Item(self, ei.name, self.get_noun(ei.carry_word))
+                        item = Item(self, ei)
                         if ei.starting_room == -1: item.room = inventory
                         else: item.room = self.rooms[ei.starting_room]
                         self.items.append(item)
 
-        def is_direction(self, word):
-                return word in self.directions
-
         def get_carry_item(self, word):
+                """Looks up the item that can be picked up via "GET <word>"
+                
+                Returns None if no such item can be found. Only carriable items
+                can be returned.
+                """
+
                 if word is not None:
                         for i in self.items:
                                 if i.carry_word == word:
                                         return i
                 return None
 
+        def normalize_word(self, word):
+                """Converts the word to the the right length, and uppercase."""
+                return word[:self.word_length].upper()
+
         def get_noun(self, text):
+                """Returns the Word for the text given; this will normalize text
+                and accounts for aliases. Returns None if text is None, but
+                raises ValueError if it is not a known noun, even if it is a verb.
+                """
+
                 if text is None: return None
-                try: return self.nouns[normalize_word(text)]
-                except KeyError: raise KeyError(f"I don't know what '{text}' means.")
+                try: return self.nouns[self.normalize_word(text)]
+                except KeyError: raise ValueError(f"I don't know what '{text}' means.")
 
         def get_verb(self, text):
+                """Returns the Word for the text given; this will normalize text
+                and accounts for aliases. Returns None if text is None, but
+                raises ValueError if it is not a known verb, even if it is a noun.
+                """
+
                 if text is None: return None
-                try: return self.verbs[normalize_word(text)]
-                except KeyError: raise KeyError(f"I don't know what '{text}' means.")
+                try: return self.verbs[self.normalize_word(text)]
+                except KeyError: raise ValueError(f"I don't know what '{text}' means.")
 
         def parse_command(self, command):
+                """Parses a two-word command into a verb Word and a noun Word.
+                This returns a tuple (verb, noun); if one or the other word is missing
+                it is None in the tuple- we don't return a shorter tuple.
+
+                Raises ValueError if the comamnd is too long. If it is empty, returns
+                (None, None).
+                """
+
                 parts = command.split()
                 if len(parts) > 2:
                         raise ValueError("No more than two words!")
@@ -91,7 +131,7 @@ class Game():
 
                 if len(parts) >= 1:
                         try: verb = self.get_verb(parts[0])
-                        except KeyError:
+                        except ValueError:
                                 noun = self.get_noun(parts[0])
                                 return (None, noun)
 
@@ -101,37 +141,81 @@ class Game():
                 return (verb, noun)
                 
         def perform_command(self, verb, noun):
-                if (verb is None or verb == self.go_word) and self.is_direction(noun):
+                """Executes a command given. Either verb or noun can be None.
+       
+                This returns the text to be displayed to the user. It also
+                updates the game state, and it can raise exceptions for errors.
+                """
+
+                if verb is None or verb == self.go_word:
                         next = self.player_room.get_move(noun)
-                        if next is None: raise ValueError(f"I can't go there!")
+                        if next is None: raise WordError(noun, f"I can't go there!")
                         self.player_room = next
-                        return self.player_room.look_text()
+                        return self.player_room.get_look_text()
                 elif verb == self.get_word:
                         item = self.get_carry_item(noun)
-                        if item is None: raise ValueError("I can't pick that up.")
-                        if item.room != self.player_room: raise ValueError("That isn't here.")
+                        if item is None: raise WordError(noun, "I can't pick that up.")
+                        if item.room != self.player_room: raise WordError(word, "That isn't here.")
                         item.room = self.inventory
-                        return self.player_room.look_text()
+                        return self.player_room.get_look_text()
                 elif verb == self.drop_word:
                         item = self.get_carry_item(noun)
                         if item is None or item.room != self.inventory:
-                                raise ValueError("I'm not carrying that.")
+                                raise WordError(noun, "I'm not carrying that.")
                         item.room = self.player_room
-                        return self.player_room.look_text()
+                        return self.player_room.get_look_text()
                 else:
                         raise ValueError("I don't understand.")
 
 class Word():
+        """Represents a word in the vocabulary; these are interned, so duplicate
+        word objects do not exist.
+
+        text - the word's text, abbreviated to the games word length.
+        aliases - all variations of the word (including 'text'), abbreviated.
+        """
+
         def __init__(self, aliases):
                 self.text = aliases[0]
                 self.aliases = aliases
 
         def __str__(self): return self.text
+        def __repr__(self): return self.text
 
-class Room():        
+class WordError(Exception):
+        """An error raised when a word is not valid, in lieu of KeyError, which
+        cocks up the message."""
+        def __init__(self, word, message):
+                self.word = word
+                self.message = message
+
+class GameObject():
+        """A base class for things in the game that you can see.
+
+        game - the game this object is part of
+        description - the text displayed for this object
+        """
+
         def __init__(self, game, description):
                 self.game = game
                 self.description = description
+        
+class Room(GameObject):
+        """Represents a room in the game, with references to its neighboring rooms.
+        Rooms do not change during gameplay.
+
+        north, south, east, west, up, down - refernces to neighboring rooms
+        """
+
+        def __init__(self, game, extracted_room = None, description = None):
+                if description is None and extracted_room is not None:
+                        description = extracted_room.description
+                        if description.startswith("*"):
+                                description = description[1:]
+                        else:
+                                description = "I'm in a " + description
+
+                GameObject.__init__(self, game, description)
                 self.north = None
                 self.south = None
                 self.east = None
@@ -143,9 +227,15 @@ class Room():
                 return self.description[:32]
 
         def get_items(self):
+                """Returns a list of items that are in this room."""
                 return [i for i in self.game.items if i.room == self]
 
         def get_move(self, word):
+                """Returns the neighboring room in the direction indicated by the Word given.
+
+                Raises WordError if the word is invalid, but None if there's no neighbor that way.
+                """
+
                 choices = {
                         self.game.north_word: self.north,
                         self.game.south_word: self.south,
@@ -154,18 +244,17 @@ class Room():
                         self.game.up_word: self.up,
                         self.game.down_word: self.down
                 }
-                return choices[word]
+                move = choices.get(word)
+                if move is None: raise WordError(word, f"'{word}' is not a direction.")
+                else: return move
 
-        def look_text(self):
-                text = self.description
-                if text.startswith("*"):
-                        text = text[1:]
-                else:
-                        text = "I'm in a " + text
+        def get_look_text(self):
+                """The text to describe the room and everything in it."""
+                text = self.description                
 
                 items = []
                 for item in self.get_items():
-                        items.append(item.name + ".")
+                        items.append(item.description + ".")
 
                 if len(items) > 0:
                         text += "\n\nVisible items: " + " ".join(items)
@@ -183,12 +272,16 @@ class Room():
 
                 return text
 
-class Item():
-        def __init__(self, game, name, carry_word):
-                self.game = game       
-                self.name = name         
-                self.carry_word = carry_word
+class Item(GameObject):
+        """Represents an item that can be moved from room to room.
+
+        room - the room the item is in.
+        carry_word - word used to get or drop the item;
+                     None if the item can't be taken.
+        """
+
+        def __init__(self, game, extracted_item):
+                GameObject.__init__(self, game, extracted_item.description)
+                self.carry_word = game.get_noun(extracted_item.carry_word)
                 self.room = None
 
-def normalize_word(word):
-        return word[:3].upper()
