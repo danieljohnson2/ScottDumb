@@ -1,3 +1,5 @@
+from execution import Occurance
+
 class Game():
         """This is the root object containing the game state.
 
@@ -78,9 +80,17 @@ class Game():
                 self.items = []
                 for ei in extracted.items:
                         item = Item(self, ei)
-                        if ei.starting_room == -1: item.room = inventory
-                        else: item.room = self.rooms[ei.starting_room]
+                        if ei.starting_room == -1: item.starting_room = inventory
+                        else: item.starting_room = self.rooms[ei.starting_room]
+                        item.room = item.starting_room
                         self.items.append(item)
+
+                self.messages = extracted.messages
+
+                self.logics = []
+                for ea in extracted.actions:
+                        if ea.verb == 0:
+                                self.logics.append(Occurance(self, ea))
 
         def get_carry_item(self, word):
                 """Looks up the item that can be picked up via "GET <word>"
@@ -146,6 +156,19 @@ class Game():
 
                 return (verb, noun)
                 
+        def perform_occurances(self):
+                """This must be called before taking user input, and runs 'occurance'
+                logic that handles events other that carrying out commands.
+
+                This returns text to be displayed to the user before accepting input.
+                """
+                text = []
+                for l in self.logics:
+                        if l.is_available():
+                                msg = l.execute()
+                                if msg != "": text.append(msg)
+                return "".join(text)
+
         def perform_command(self, verb, noun):
                 """Executes a command given. Either verb or noun can be None.
        
@@ -255,9 +278,9 @@ class Room(GameObject):
                         self.game.up_word: self.up,
                         self.game.down_word: self.down
                 }
-                move = choices.get(word)
-                if move is None: raise WordError(word, f"'{word}' is not a direction.")
-                else: return move
+
+                try: return choices[word]
+                except KeyError: raise WordError(word, f"'{word}' is not a direction.")
 
         def get_look_text(self):
                 """The text to describe the room and everything in it."""
@@ -287,6 +310,7 @@ class Item(GameObject):
         """Represents an item that can be moved from room to room.
 
         room - the room the item is in.
+        starting_room - the room the item started in
         carry_word - word used to get or drop the item;
                      None if the item can't be taken.
         """

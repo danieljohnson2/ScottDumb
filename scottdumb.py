@@ -15,6 +15,9 @@ while True:
                         g.needs_room_update = False
                         g.wants_room_update = False
 
+                occ = g.perform_occurances()
+                if occ != "": print(occ)
+
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
                 print(verb, noun)
