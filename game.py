@@ -201,9 +201,16 @@ class Game():
                 self.player_room = new_room
                 self.needs_room_update = True
 
-        def get_item(self, item):
-                if item.room != self.player_room: raise WordError(word, "That isn't here.")
+        def get_item(self, item, checked = True):
+                if checked and item.room != self.player_room:
+                        raise WordError(word, "That isn't here.")
                 item.room = self.inventory
+                self.wants_room_update = True
+
+        def drop_item(self, item, checked = True):
+                if checked and (item is None or item.room != self.inventory):
+                        raise WordError(noun, "I'm not carrying that.")
+                item.room = self.player_room
                 self.wants_room_update = True
 
         def move_item(self, item, room):
@@ -214,12 +221,6 @@ class Game():
                 tmp = item1.room
                 item1.room = item2.room
                 item2.room = tmp
-                self.wants_room_update = True
-
-        def drop_item(self, item):
-                if item is None or item.room != self.inventory:
-                                raise WordError(noun, "I'm not carrying that.")
-                item.room = self.player_room
                 self.wants_room_update = True
                         
 class Word():
