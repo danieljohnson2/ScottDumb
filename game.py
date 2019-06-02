@@ -12,6 +12,11 @@ class Game():
         up_word, down_word,
         go_word, get_word, drop_word - predefined Word objects
         directions - a list of all direction words above
+
+        needs_room_update - set when the room look text needs to be reshown;
+                            you clear this once you have done so.
+        wants_room_update - set when the room has changed, but immediate
+                            redisplay is not needed. Again, clear this yourself.
         """
 
         def __init__(self, extracted):
@@ -19,6 +24,7 @@ class Game():
                 self.rooms = [Room(self, x) for x in extracted.rooms]
                 self.inventory = Room(self, description = "Inventory")
                 self.player_room = self.rooms[extracted.starting_room]
+                self.needs_room_update = True
 
                 self.nouns = dict()
                 for i, g in enumerate(extracted.nouns):
@@ -151,21 +157,24 @@ class Game():
                         next = self.player_room.get_move(noun)
                         if next is None: raise WordError(noun, f"I can't go there!")
                         self.player_room = next
-                        return self.player_room.get_look_text()
+                        self.needs_room_update = True
                 elif verb == self.get_word:
                         item = self.get_carry_item(noun)
                         if item is None: raise WordError(noun, "I can't pick that up.")
                         if item.room != self.player_room: raise WordError(word, "That isn't here.")
                         item.room = self.inventory
-                        return self.player_room.get_look_text()
+                        self.wants_room_update = True
+                        return "Taken."
                 elif verb == self.drop_word:
                         item = self.get_carry_item(noun)
                         if item is None or item.room != self.inventory:
                                 raise WordError(noun, "I'm not carrying that.")
                         item.room = self.player_room
-                        return self.player_room.get_look_text()
+                        self.wants_room_update = True
+                        return "Dropped."
                 else:
                         raise ValueError("I don't understand.")
+                return ""
 
 class Word():
         """Represents a word in the vocabulary; these are interned, so duplicate
@@ -188,6 +197,8 @@ class WordError(Exception):
         def __init__(self, word, message):
                 self.word = word
                 self.message = message
+
+        def __str__(self): return self.message
 
 class GameObject():
         """A base class for things in the game that you can see.

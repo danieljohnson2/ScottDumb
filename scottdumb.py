@@ -7,10 +7,14 @@ f = open(argv[1], "r")
 ex = ExtractedFile(f)
 g = Game(ex)
 
-print(g.player_room.get_look_text())
 
 while True:
         try:
+                if g.needs_room_update:
+                        print(g.player_room.get_look_text())
+                        g.needs_room_update = False
+                        g.wants_room_update = False
+
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
                 print(verb, noun)
