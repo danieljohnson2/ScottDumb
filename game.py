@@ -112,10 +112,15 @@ class Game():
                 """Looks up the item that can be picked up via "GET <word>"
                 
                 Returns None if no such item can be found. Only carriable items
-                can be returned.
+                can be returned. The names can be ambiguous, so we prefer the item
+                that is present.
                 """
 
                 if word is not None:
+                        for i in self.items:
+                                if (i.room == self.player_room or i.room == self.inventory) and i.carry_word == word:
+                                        return i
+
                         for i in self.items:
                                 if i.carry_word == word:
                                         return i
