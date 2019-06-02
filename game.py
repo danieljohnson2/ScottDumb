@@ -168,7 +168,7 @@ class Game():
                 """
                 text = []
                 for l in self.logics:
-                        if l.is_available():
+                        if l.check_occurance():
                                 msg = l.execute()
                                 if msg != "": text.append(msg)
                 return "".join(text)
