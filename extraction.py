@@ -9,8 +9,10 @@ class ExtractedFile():
         treasure_room - room # where treasure must be placed
 
         actions - list of ExtractedActions
-        nouns - groups of words (a list of lists)
-        verbs - groups of words (a list of lists)
+        nouns - the nouns in index order
+        verbs- the verbs in index order
+        grouped_nouns - groups of synonyms (a list of lists)
+        grouped_verbs - groups of synonyms (a list of lists)
         rooms - list of ExtractedRooms
         messages - list of messages
         items - list of ExractedItems
@@ -34,13 +36,13 @@ class ExtractedFile():
                 for i in range(0, max_action_index+1):
                         self.actions.append(ExtractedAction(file))
 
-                raw_verbs = []
-                raw_nouns = []
+                self.verbs = []
+                self.nouns = []
                 for i in range(0, max_word_index+1):
-                        raw_verbs.append(read_string(file))
-                        raw_nouns.append(read_string(file))
-                self.verbs = group_words(raw_verbs)
-                self.nouns = group_words(raw_nouns)
+                        self.verbs.append(read_string(file))
+                        self.nouns.append(read_string(file))
+                self.grouped_verbs = group_words(self.verbs)
+                self.grouped_nouns = group_words(self.nouns)
 
                 self.rooms = []
                 for i in range(0, max_room_index+1):

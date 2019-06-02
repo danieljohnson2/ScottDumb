@@ -1,4 +1,4 @@
-from execution import Occurance
+from execution import Occurance, Command
 
 class Game():
         """This is the root object containing the game state.
@@ -33,7 +33,7 @@ class Game():
                 self.flags = [Flag() for n in range(0, 32)]
 
                 self.nouns = dict()
-                for i, g in enumerate(extracted.nouns):
+                for i, g in enumerate(extracted.grouped_nouns):
                         word = Word(g)
                         for text in g:
                                 self.nouns[self.normalize_word(text)] = word
@@ -59,7 +59,7 @@ class Game():
                 self.nouns["D"] = self.down_word
 
                 self.verbs = dict()
-                for i, g in enumerate(extracted.verbs):
+                for i, g in enumerate(extracted.grouped_verbs):
                         word = Word(g)
                         for text in g:
                                 self.verbs[self.normalize_word(text)] = word
@@ -95,6 +95,8 @@ class Game():
                 for ea in extracted.actions:
                         if ea.verb == 0:
                                 self.logics.append(Occurance(self, ea))
+                        else:
+                                self.logics.append(Command(self, extracted, ea))
 
         def get_carry_item(self, word):
                 """Looks up the item that can be picked up via "GET <word>"
@@ -146,17 +148,19 @@ class Game():
                 if len(parts) > 2:
                         raise ValueError("No more than two words!")
                 
+                self.parsed_verb = parts[0] if len(parts) > 0 else None
+                self.parsed_noun = parts[1] if len(parts) > 1 else None
                 verb = None
                 noun = None
 
-                if len(parts) >= 1:
-                        try: verb = self.get_verb(parts[0])
+                if self.parsed_verb is not None:
+                        try: verb = self.get_verb(self.parsed_verb)
                         except ValueError:
-                                noun = self.get_noun(parts[0])
+                                noun = self.get_noun(self.parsed_verb)
                                 return (None, noun)
 
-                if len(parts) >= 2:
-                        noun = self.get_noun(parts[1])
+                if self.parsed_noun is not None:
+                        noun = self.get_noun(self.parsed_noun)
 
                 return (verb, noun)
                 
@@ -180,6 +184,10 @@ class Game():
                 updates the game state, and it can raise exceptions for errors.
                 """
 
+                for l in self.logics:
+                        if l.check_command(verb, noun):
+                                return l.execute()
+
                 if verb is None or verb == self.go_word:
                         next = self.player_room.get_move(noun)
                         if next is None: raise WordError(noun, f"I can't go there!")
@@ -196,6 +204,15 @@ class Game():
                 else:
                         raise ValueError("I don't understand.")
                 return ""
+
+        def get_inventory_text(self):
+                text = "I am carrying the following:\n"
+                items = [i.description for i in self.inventory.get_items()]
+                if len(items) > 0:
+                        text += " ".join(items)
+                else:
+                        text += "Nothing at all!"
+                return text
 
         def move_player(self, new_room):
                 self.player_room = new_room
