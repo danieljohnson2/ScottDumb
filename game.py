@@ -8,6 +8,8 @@ class Game():
         inventory - a Room holding the player's inventory
         player_room - the room the player is in
         items - list of all Items
+        messages - list of messages
+        flags - list of 32 Flags
 
         north_word, south_word,
         east_word, west_word,
@@ -27,6 +29,8 @@ class Game():
                 self.inventory = Room(self, description = "Inventory")
                 self.player_room = self.rooms[extracted.starting_room]
                 self.needs_room_update = True
+
+                self.flags = [Flag() for n in range(0, 32)]
 
                 self.nouns = dict()
                 for i, g in enumerate(extracted.nouns):
@@ -179,26 +183,45 @@ class Game():
                 if verb is None or verb == self.go_word:
                         next = self.player_room.get_move(noun)
                         if next is None: raise WordError(noun, f"I can't go there!")
-                        self.player_room = next
-                        self.needs_room_update = True
+                        self.move_player(next)
                 elif verb == self.get_word:
                         item = self.get_carry_item(noun)
                         if item is None: raise WordError(noun, "I can't pick that up.")
-                        if item.room != self.player_room: raise WordError(word, "That isn't here.")
-                        item.room = self.inventory
-                        self.wants_room_update = True
+                        self.get_item(item)
                         return "Taken."
                 elif verb == self.drop_word:
                         item = self.get_carry_item(noun)
-                        if item is None or item.room != self.inventory:
-                                raise WordError(noun, "I'm not carrying that.")
-                        item.room = self.player_room
-                        self.wants_room_update = True
+                        self.drop_item(item)
                         return "Dropped."
                 else:
                         raise ValueError("I don't understand.")
                 return ""
 
+        def move_player(self, new_room):
+                self.player_room = new_room
+                self.needs_room_update = True
+
+        def get_item(self, item):
+                if item.room != self.player_room: raise WordError(word, "That isn't here.")
+                item.room = self.inventory
+                self.wants_room_update = True
+
+        def move_item(self, item, room):
+                item.room = room
+                self.wants_room_update = True
+        
+        def swap_items(self, item1, item2):
+                tmp = item1.room
+                item1.room = item2.room
+                item2.room = tmp
+                self.wants_room_update = True
+
+        def drop_item(self, item):
+                if item is None or item.room != self.inventory:
+                                raise WordError(noun, "I'm not carrying that.")
+                item.room = self.player_room
+                self.wants_room_update = True
+                        
 class Word():
         """Represents a word in the vocabulary; these are interned, so duplicate
         word objects do not exist.
@@ -320,3 +343,6 @@ class Item(GameObject):
                 self.carry_word = game.get_noun(extracted_item.carry_word)
                 self.room = None
 
+class Flag():
+        def __init__(self):
+                self.state = False

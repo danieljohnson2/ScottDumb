@@ -18,6 +18,11 @@ while True:
                 occ = g.perform_occurances()
                 if occ != "": print(occ)
 
+                if g.needs_room_update:
+                        print(g.player_room.get_look_text())
+                        g.needs_room_update = False
+                        g.wants_room_update = False
+
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
                 print(verb, noun)
