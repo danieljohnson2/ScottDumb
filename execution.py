@@ -76,7 +76,9 @@ class Logic():
                 def describe_room(): self.game.needs_room_update = True
                 def clear_screen(): pass # we don't do this
                 def swap_items(): self.game.swap_items(self.game.items[item1_index], self.game.items[item2_index])
-
+                def refill_lamp():
+                        self.game.light_remaining = self.game.light_duration
+                        self.game.move_item(self.game.lamp_item, self.game.inventory)
                 def undefined(): raise ValueError(f"Undefined action op: {op}")
 
                 if op == 0: return lambda: None
@@ -120,6 +122,7 @@ class Logic():
                 if op == 68:
                         flag_index = 0
                         return reset_flag
+                if op == 69: return refill_lamp
                 if op == 70: return clear_screen
                 if op == 72:
                         item1_index = value_source()

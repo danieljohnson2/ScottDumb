@@ -13,7 +13,10 @@ class Game():
         logics - list of all game logics
 
         dark_flag - the flag (#15) that is set when it is dark
+        lamp_exhausted_flag - the flag (#16) set when lamp runs out
         lamp_item - the lamp (#9)
+        light_duration - the initial light_remaining
+        light_remaining - number of turns of lamp use left
 
         north_word, south_word,
         east_word, west_word,
@@ -39,6 +42,7 @@ class Game():
 
                 self.flags = [Flag() for n in range(0, 32)]
                 self.dark_flag = self.flags[15]
+                self.lamp_exhausted_flag = self.flags[16]
 
                 self.nouns = dict()
                 for i, g in enumerate(extracted.grouped_nouns):
@@ -97,6 +101,8 @@ class Game():
                         item.room = item.starting_room
                         self.items.append(item)
                 self.lamp_item = self.items[9]
+                self.light_duration = extracted.light_duration
+                self.light_remaining = self.light_duration
 
                 self.messages = extracted.messages
 
@@ -200,6 +206,12 @@ class Game():
 
                 This returns text to be displayed to the user before accepting input.
                 """
+
+                if self.lamp_item.room == self.inventory and self.light_remaining > 0:
+                        self.light_remaining -= 1
+                        print("LR: " + str(self.light_remaining))
+                        if self.light_remaining <= 0:
+                                self.lamp_exhausted_flag.state = True
 
                 for l in self.logics:
                         if l.check_occurance():

@@ -17,13 +17,13 @@ while not g.game_over:
                 g.perform_occurances()
                 print(g.extract_output(), end = "")
 
+                if g.game_over: break
+
                 if g.needs_room_update:
                         print(g.player_room.get_look_text())
                         g.needs_room_update = False
                         g.wants_room_update = False
-
-                if g.game_over: break
-
+                
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
                 
