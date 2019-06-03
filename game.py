@@ -24,6 +24,7 @@ class Game():
                             you clear this once you have done so.
         wants_room_update - set when the room has changed, but immediate
                             redisplay is not needed. Again, clear this yourself.
+        game_over - set when the game is over and should exit
         """
 
         def __init__(self, extracted):
@@ -32,6 +33,8 @@ class Game():
                 self.inventory = Room(self, description = "Inventory")
                 self.player_room = self.rooms[extracted.starting_room]
                 self.needs_room_update = True
+                self.wants_room_update = True
+                self.game_over = False
 
                 self.flags = [Flag() for n in range(0, 32)]
                 self.dark_flag = self.flags[15]
