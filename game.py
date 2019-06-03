@@ -228,6 +228,9 @@ class Game():
                 else:
                         raise ValueError("I don't understand.")
 
+        def get_score_text(self):
+                return "Score not supported yet!"
+
         def get_inventory_text(self):
                 """Returns the text to display when the user takes inventory."""
                 text = "I am carrying the following:\n"

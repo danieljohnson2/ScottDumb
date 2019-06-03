@@ -7,7 +7,7 @@ f = open(argv[1], "r")
 ex = ExtractedFile(f)
 g = Game(ex)
 
-while True:
+while not g.game_over:
         try:
                 if g.needs_room_update:
                         print(g.player_room.get_look_text())
@@ -24,8 +24,7 @@ while True:
 
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
-                print(verb, noun)
-
+                
                 g.perform_command(verb, noun)
                 print(g.extract_output(), end = "")
         except Exception as e:
