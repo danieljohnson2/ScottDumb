@@ -209,7 +209,6 @@ class Game():
 
                 if self.lamp_item.room == self.inventory and self.light_remaining > 0:
                         self.light_remaining -= 1
-                        print("LR: " + str(self.light_remaining))
                         if self.light_remaining <= 0:
                                 self.lamp_exhausted_flag.state = True
 

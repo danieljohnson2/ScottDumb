@@ -29,6 +29,8 @@ while not g.game_over:
                 
                 g.perform_command(verb, noun)
                 print(g.extract_output(), end = "")
+        except EOFError:
+                exit()
         except Exception as e:
                 print(str(e))
 
