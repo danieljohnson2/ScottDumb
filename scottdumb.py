@@ -22,6 +22,8 @@ while not g.game_over:
                         g.needs_room_update = False
                         g.wants_room_update = False
 
+                if g.game_over: break
+
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
                 

@@ -13,6 +13,7 @@ class Game():
         logics - list of all game logics
 
         dark_flag - the flag (#15) that is set when it is dark
+        lamp_item - the lamp (#9)
 
         north_word, south_word,
         east_word, west_word,
@@ -95,6 +96,7 @@ class Game():
                         else: item.starting_room = self.rooms[ei.starting_room]
                         item.room = item.starting_room
                         self.items.append(item)
+                self.lamp_item = self.items[9]
 
                 self.messages = extracted.messages
 
@@ -368,7 +370,7 @@ class Room(GameObject):
         def get_look_text(self):
                 """The text to describe the room and everything in it."""
 
-                if self.game.dark_flag.state:
+                if self.game.dark_flag.state and self.game.lamp_item.room != self.game.inventory:
                         return "It is too dark to see!"
 
                 text = self.description                
