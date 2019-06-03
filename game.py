@@ -10,6 +10,9 @@ class Game():
         items - list of all Items
         messages - list of messages
         flags - list of 32 Flags
+        logics - list of all game logics
+
+        dark_flag - the flag (#15) that is set when it is dark
 
         north_word, south_word,
         east_word, west_word,
@@ -31,6 +34,7 @@ class Game():
                 self.needs_room_update = True
 
                 self.flags = [Flag() for n in range(0, 32)]
+                self.dark_flag = self.flags[15]
 
                 self.nouns = dict()
                 for i, g in enumerate(extracted.grouped_nouns):
@@ -38,12 +42,12 @@ class Game():
                         for text in g:
                                 self.nouns[self.normalize_word(text)] = word
 
-                self.north_word = self.get_noun("NORTH")
-                self.south_word = self.get_noun("SOUTH")
-                self.east_word = self.get_noun("EAST")
-                self.west_word = self.get_noun("WEST")
+                self.north_word = self.get_noun("NOR")
+                self.south_word = self.get_noun("SOU")
+                self.east_word = self.get_noun("EAS")
+                self.west_word = self.get_noun("WES")
                 self.up_word = self.get_noun("UP")
-                self.down_word = self.get_noun("DOWN")
+                self.down_word = self.get_noun("DOW")
                 self.directions = [
                         self.north_word, self.south_word,
                         self.east_word, self.west_word,
@@ -100,10 +104,16 @@ class Game():
 
                 self.output_text = ""
 
-        def output(self, text): self.output_text += text
-        def output_line(self, line = ""): self.output_text += line + "\n"
+        def output(self, text):
+                """Adds text to the output buffer, with no newline."""
+                self.output_text += text
+
+        def output_line(self, line = ""):
+                """Adds text to the output buffer, followed by a newline."""
+                self.output_text += line + "\n"
 
         def extract_output(self):
+                """Returns the output buffer, but also resets it."""
                 out = self.output_text
                 self.output_text = ""
                 return out
@@ -216,6 +226,7 @@ class Game():
                         raise ValueError("I don't understand.")
 
         def get_inventory_text(self):
+                """Returns the text to display when the user takes inventory."""
                 text = "I am carrying the following:\n"
                 items = [i.description for i in self.inventory.get_items()]
                 if len(items) > 0:
@@ -225,10 +236,16 @@ class Game():
                 return text
 
         def move_player(self, new_room):
+                """Moves the player to a new room."""
                 self.player_room = new_room
                 self.needs_room_update = True
 
         def get_item(self, item, as_user = True):
+                """Cause an item to enter the player inventory.
+
+                If as_user is true, tihs checks that the item is available,
+                and generates output too. If not, the 'get' is unchecked and silent.
+                """
                 if as_user and item.room != self.player_room:
                         raise ValueError("That isn't here.")
                 item.room = self.inventory
@@ -236,6 +253,11 @@ class Game():
                 if as_user: self.output_line("Taken.")
 
         def drop_item(self, item, as_user = True):
+                """Cause an item to enter the room the player is in.
+
+                If as_user is true, tihs checks that the item is carried,
+                and generates output too. If not, the 'drop' is unchecked and silent.
+                """
                 if as_user and (item is None or item.room != self.inventory):
                         raise ValueError("I'm not carrying that.")
                 item.room = self.player_room
@@ -243,10 +265,12 @@ class Game():
                 if as_user: self.output_line("Dropped.")
 
         def move_item(self, item, room):
+                """Moves an item to a particular room. The room may be None."""
                 item.room = room
                 self.wants_room_update = True
         
         def swap_items(self, item1, item2):
+                """Swaps two items, so each winds up ine the room the other was in."""
                 tmp = item1.room
                 item1.room = item2.room
                 item2.room = tmp
@@ -337,6 +361,10 @@ class Room(GameObject):
 
         def get_look_text(self):
                 """The text to describe the room and everything in it."""
+
+                if self.game.dark_flag.state:
+                        return "It is too dark to see!"
+
                 text = self.description                
 
                 items = []
