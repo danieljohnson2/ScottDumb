@@ -7,6 +7,9 @@ f = open(argv[1], "r")
 ex = ExtractedFile(f)
 g = Game(ex)
 
+if len(argv)>=3:
+        g.load_game(argv[2])
+
 while not g.game_over:
         try:
                 if g.needs_room_update:

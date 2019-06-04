@@ -34,8 +34,8 @@ class Game():
 
         def __init__(self, extracted):
                 self.word_length = extracted.word_length
-                self.rooms = [Room(self, x) for x in extracted.rooms]
-                self.inventory = Room(self, description = "Inventory")
+                self.rooms = [Room(self, i, x) for i, x in enumerate(extracted.rooms)]
+                self.inventory = Room(self, -1, description = "Inventory")
                 self.player_room = self.rooms[extracted.starting_room]
                 self.needs_room_update = True
                 self.wants_room_update = True
@@ -297,6 +297,56 @@ class Game():
                 item1.room = item2.room
                 item2.room = tmp
                 self.wants_room_update = True
+
+        def save_game(self, file_name):
+                """Saves the game to the file named using the ScottFree format."""
+                def get_room_index(r):
+                        return 0 if r is None else r.index
+
+                file = open(file_name, "w")
+               
+                # counters and saved rooms, which we don't support yet.
+                for n in range(0, 16):
+                        file.write("0 0\n")
+
+                bitflags = 0
+                for f in reversed(self.flags):
+                        bitflags = bitflags << 1
+                        if f.state: bitflags = bitflags | 1
+                dark = 1 if self.dark_flag.state else 0
+                player_room_index = get_room_index(self.player_room)
+
+                file.write(f"{bitflags} {dark} {player_room_index} 0 0 {self.light_remaining}\n")
+
+                for item in self.items:
+                        file.write(f"{get_room_index(item.room)}\n")
+
+        def load_game(self, file_name):
+                """Loads the game from the file named, which is in the ScottFree format."""
+                def find_room(index):
+                        if index == -1: return self.inventory
+                        elif index == 0: return None
+                        else: return self.rooms[index]
+
+                file = open(file_name, "r")
+                
+                # counters and saved rooms, which we don't support yet.
+                for n in range(0, 16):
+                        file.readline()
+
+                state = file.readline().split()
+                bitflags = int(state[0])
+                for f in self.flags:
+                        f.state = (bitflags & 1) != 0
+                        bitflags = bitflags >> 1
+
+                self.player_room = find_room(int(state[2]))
+                self.light_remaining = int(state[5])
+
+                for item in self.items:
+                        item.room = find_room(int(file.readline()))
+                        
+                
                         
 class Word():
         """Represents a word in the vocabulary; these are interned, so duplicate
@@ -337,10 +387,11 @@ class Room(GameObject):
         """Represents a room in the game, with references to its neighboring rooms.
         Rooms do not change during gameplay.
 
+        index - room number, used to save game
         north, south, east, west, up, down - refernces to neighboring rooms
         """
 
-        def __init__(self, game, extracted_room = None, description = None):
+        def __init__(self, game, index, extracted_room = None, description = None):
                 if description is None and extracted_room is not None:
                         description = extracted_room.description
                         if description.startswith("*"):
@@ -349,6 +400,7 @@ class Room(GameObject):
                                 description = "I'm in a " + description
 
                 GameObject.__init__(self, game, description)
+                self.index = index
                 self.north = None
                 self.south = None
                 self.east = None

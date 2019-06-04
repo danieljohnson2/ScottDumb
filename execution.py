@@ -74,6 +74,7 @@ class Logic():
                 def move_item(): self.game.move_item(self.game.items[item_index], self.game.rooms[room_index])
                 def describe_room(): self.game.needs_room_update = True
                 def clear_screen(): pass # we don't do this
+                def save_game(): self.game.save_game("scott.sav")
                 def swap_items(): self.game.swap_items(self.game.items[item1_index], self.game.items[item2_index])
                 def refill_lamp():
                         self.game.light_remaining = self.game.light_duration
@@ -123,6 +124,7 @@ class Logic():
                         return reset_flag
                 if op == 69: return refill_lamp
                 if op == 70: return clear_screen
+                if op == 71: return save_game
                 if op == 72:
                         item1_index = value_source()
                         item2_index = value_source()
