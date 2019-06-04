@@ -17,6 +17,7 @@ class Game():
         lamp_item - the lamp (#9)
         light_duration - the initial light_remaining
         light_remaining - number of turns of lamp use left
+        max_carried - number of items the player can carry
 
         north_word, south_word,
         east_word, west_word,
@@ -103,6 +104,7 @@ class Game():
                 self.lamp_item = self.items[9]
                 self.light_duration = extracted.light_duration
                 self.light_remaining = self.light_duration
+                self.max_carried = extracted.max_carried
 
                 self.messages = extracted.messages
 
@@ -234,10 +236,18 @@ class Game():
                 elif verb == self.get_word:
                         item = self.get_carry_item(noun)
                         if item is None: raise WordError(noun, "I can't pick that up.")
+                        if item.room == self.inventory: raise ValueError("I already have it.")
+                        if item.room != self.player_room: raise ValueError("I don't see it here!")
+
                         self.get_item(item)
+                        self.output_line("OK")
                 elif verb == self.drop_word:
                         item = self.get_carry_item(noun)
+                        if (item is None or item.room != self.inventory):
+                                raise ValueError("I'm not carrying it!")
+                
                         self.drop_item(item)
+                        self.output_line("OK")
                 else:
                         raise ValueError("I don't understand.")
 
@@ -259,29 +269,22 @@ class Game():
                 self.player_room = new_room
                 self.needs_room_update = True
 
-        def get_item(self, item, as_user = True):
+        def get_item(self, item, force = False):
                 """Cause an item to enter the player inventory.
 
-                If as_user is true, tihs checks that the item is available,
-                and generates output too. If not, the 'get' is unchecked and silent.
+                If force is true, this will work even if the player inventory is full.
                 """
-                if as_user and item.room != self.player_room:
-                        raise ValueError("That isn't here.")
+
+                if not force and len(self.inventory.get_items()) >= self.max_carried:
+                        raise ValueError("I've too much to carry!")
+
                 item.room = self.inventory
                 self.wants_room_update = True
-                if as_user: self.output_line("Taken.")
-
-        def drop_item(self, item, as_user = True):
-                """Cause an item to enter the room the player is in.
-
-                If as_user is true, tihs checks that the item is carried,
-                and generates output too. If not, the 'drop' is unchecked and silent.
-                """
-                if as_user and (item is None or item.room != self.inventory):
-                        raise ValueError("I'm not carrying that.")
+                
+        def drop_item(self, item):
+                """Cause an item to enter the room the player is in."""
                 item.room = self.player_room
                 self.wants_room_update = True
-                if as_user: self.output_line("Dropped.")
 
         def move_item(self, item, room):
                 """Moves an item to a particular room. The room may be None."""

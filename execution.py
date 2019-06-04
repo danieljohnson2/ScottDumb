@@ -60,9 +60,8 @@ class Logic():
 
         def create_action(self, op, value_source):
                 def get_item(): self.game.get_item(self.game.items[item_index])
-                def superget_item(): self.game.get_item(self.game.items[item_index], as_user = False)
+                def superget_item(): self.game.get_item(self.game.items[item_index], force = True)
                 def drop_item(): self.game.drop_item(self.game.items[item_index])
-                def superdrop_item(): self.game.drop_item(self.game.items[item_index], as_user = False)
                 def move_player(): self.game.move_player(self.game.rooms[room_index])
                 def remove_item(): self.game.move_item(self.game.items[item_index], None)
                 def set_flag(): self.game.flags[flag_index].state = True
@@ -88,7 +87,7 @@ class Logic():
                         return get_item
                 if op == 53:
                         item_index = value_source()
-                        return superdrop_item
+                        return drop_item
                 if op == 54:
                         room_index = value_source()
                         return move_player
