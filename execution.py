@@ -72,7 +72,7 @@ class Logic():
                         self.game.move_player(self.game.rooms[len(self.game.rooms) - 1])
                         self.game.flags[15].state = False # darkness flag
                 def game_over(): self.game.game_over = True
-                def score() : self.game.output_line(self.game.get_score_text())
+                def check_score() : self.game.check_score()
                 def move_item(): self.game.move_item(self.game.items[item_index], self.game.rooms[room_index])
                 def describe_room(): self.game.needs_room_update = True
                 def clear_screen(): pass # we don't do this
@@ -117,7 +117,7 @@ class Logic():
                         return move_item
                 if op == 63: return game_over
                 if op == 64 or op == 76: return describe_room
-                if op == 65: return score
+                if op == 65: return check_score
                 if op == 66: return lambda: self.game.output_line(self.game.get_inventory_text())
                 if op == 67:
                         flag_index = 0

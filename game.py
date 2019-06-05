@@ -18,6 +18,8 @@ class Game():
         light_duration - the initial light_remaining
         light_remaining - number of turns of lamp use left
         max_carried - number of items the player can carry
+        treasure_count - total number of treasures
+        treasure_room - room where treasure must be placed
 
         north_word, south_word,
         east_word, west_word,
@@ -107,6 +109,9 @@ class Game():
                 self.light_duration = extracted.light_duration
                 self.light_remaining = self.light_duration
                 self.max_carried = extracted.max_carried
+
+                self.treasure_room = self.rooms[extracted.treasure_room]
+                self.treasure_count = extracted.treasure_count
 
                 self.messages = extracted.messages
 
@@ -266,8 +271,13 @@ class Game():
                 else:
                         raise ValueError("I don't understand.")
 
-        def get_score_text(self):
-                return "Score not supported yet!"
+        def check_score(self):
+                treasures_found = sum(1 for t in self.treasure_room.get_items() if t.is_treasure())
+                score = int(treasures_found * 100 / self.treasure_count)
+                self.output_line(f"I stored {treasures_found} treasures.")
+                self.output_line(f"On a scale of 0-100, that's: {score}")
+                if score == 100 and self.player_room == self.treasure_room:
+                        self.game_over = True
 
         def get_inventory_text(self):
                 """Returns the text to display when the user takes inventory."""
@@ -489,6 +499,8 @@ class Item(GameObject):
                 GameObject.__init__(self, game, extracted_item.description)
                 self.carry_word = game.get_noun(extracted_item.carry_word)
                 self.room = None
+
+        def is_treasure(self): return self.description.startswith("*")
 
 class Flag():
         def __init__(self):
