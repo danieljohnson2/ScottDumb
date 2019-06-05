@@ -1,6 +1,11 @@
 from random import randint
 
 class Logic():
+        """This class contains the actual opcodes to execute for the game.
+
+        Subclasses override methods to control when this can execute, but the
+        actual execute is all here.
+        """
         def __init__(self, game, extracted_action):
                 self.game = game
                 self.conditions = []
@@ -19,26 +24,42 @@ class Logic():
                         self.actions.append(self.create_action(op, get_arg))
                 
         def is_available(self):
+                """Runs conditions for the logic; returns true if this logic can execute."""
                 for c in self.conditions:
                         if not c():
                                 return False
                 return True
 
-        def check_occurance(self): return False
+        def check_occurance(self):
+                """True if this is an occurance that should run now.
 
-        def check_command(self, verb, noun): return False
+                This rolls the dice for the chance of the occurance, so repeated
+                calls don't always agree. Also checks availability.
+                """
+                return False
 
-        def check_continuation(self): return False
+        def check_command(self, verb, noun):
+                """True if this is a command to handle the user command indicated
+                by verb and noun. Also checks availability."""
+                return False
+
+        def check_continuation(self):
+                """True if this is a continuation action, and is available."""
+                return False
 
         def execute(self):
-                text = []
+                """Runs the action. This applies changes to self.game."""
                 for a in self.actions:
-                        msg = a()
-                        if msg is not None: text.append(msg)
-
-                return " ".join(text)
+                        a()
 
         def create_condition(self, op, val):
+                """Returns a function (no arguments, returns a boolean) that
+                implements a condition, given its opcode and value.
+
+                This does not handle opcode 0, the 'argument carrier' for action opcodes-
+                that is a special case.
+                """
+
                 def undefined(): raise ValueError(f"Undefined condition op: {op}")
 
                 if op == 1: return lambda: self.game.items[val].room == self.game.inventory
@@ -61,6 +82,14 @@ class Logic():
                 return undefined
 
         def create_action(self, op, value_source):
+                """Returns a function (no arguments, returns nothing) that implements
+                an action opcode.
+
+                value_source is not an opcode argument, but a function that extracts the
+                next one from the argument carries (which are among the condit\ions of all
+                things. It can be called repeatedly for multiple arguments.
+                """
+
                 def get_item(): self.game.get_item(self.game.items[item_index])
                 def superget_item(): self.game.get_item(self.game.items[item_index], force = True)
                 def drop_item(): self.game.drop_item(self.game.items[item_index])
@@ -143,6 +172,11 @@ class Logic():
                 return undefined
 
 class Occurance(Logic):
+        """These logics run before user input, and let the game take actions
+        not commanded by the user. These can have a chance-to-run, so they only
+        run now and again.
+        """
+
         def __init__(self, game, extracted_action):
                 Logic.__init__(self, game, extracted_action)
                 self.chance = extracted_action.noun
@@ -151,6 +185,8 @@ class Occurance(Logic):
                 return self.is_available() and randint(0, 100) <= self.chance
 
 class Command(Logic):
+        """These logics handle specific user commands."""
+
         def __init__(self, game, extracted, extracted_action):
                 Logic.__init__(self, game, extracted_action)
                 verb_index = extracted_action.verb
@@ -165,6 +201,10 @@ class Command(Logic):
                 return False
 
 class CommandContinuation(Logic):
+        """These logics are weird. They are continuations of commands which
+        they follow. They run if a command executes the continue opcode, and
+        if their condiiton is also met."""
+
         def __init__(self, game, extracted_action):
                 Logic.__init__(self, game, extracted_action)
         

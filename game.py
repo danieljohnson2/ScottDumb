@@ -115,13 +115,14 @@ class Game():
 
                 self.messages = extracted.messages
 
-                self.logics = []
+                self.occurances = []
+                self.commands = []
                 for ea in extracted.actions:
                         if ea.verb == 0:
-                                if ea.noun == 0: self.logics.append(CommandContinuation(self, ea))
-                                else: self.logics.append(Occurance(self, ea))
+                                if ea.noun == 0: self.commands.append(CommandContinuation(self, ea))
+                                else: self.occurances.append(Occurance(self, ea))
                         else:
-                                self.logics.append(Command(self, extracted, ea))
+                                self.commands.append(Command(self, extracted, ea))
 
                 self.output_text = ""
 
@@ -224,7 +225,7 @@ class Game():
 
                 self.continuing_logics = False
 
-                for l in self.logics:
+                for l in self.occurances:
                         if l.check_occurance():
                                 l.execute()
 
@@ -237,7 +238,7 @@ class Game():
 
                 self.continuing_commands = False
 
-                for l in self.logics:
+                for l in self.commands:
                         if self.continuing_commands:
                                 if l.check_continuation():
                                         l.execute()
