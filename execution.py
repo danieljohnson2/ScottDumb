@@ -28,6 +28,8 @@ class Logic():
 
         def check_command(self, verb, noun): return False
 
+        def check_continuation(self): return False
+
         def execute(self):
                 text = []
                 for a in self.actions:
@@ -75,6 +77,7 @@ class Logic():
                 def describe_room(): self.game.needs_room_update = True
                 def clear_screen(): pass # we don't do this
                 def save_game(): self.game.save_game("scott.sav")
+                def continue_actions(): self.game.continuing_commands = True
                 def swap_items(): self.game.swap_items(self.game.items[item1_index], self.game.items[item2_index])
                 def refill_lamp():
                         self.game.light_remaining = self.game.light_duration
@@ -129,6 +132,7 @@ class Logic():
                         item1_index = value_source()
                         item2_index = value_source()
                         return swap_items
+                if op == 73: return continue_actions
                 if op == 74:
                         item_index = value_source()
                         return superget_item
@@ -159,3 +163,11 @@ class Command(Logic):
                         if self.noun is None or self.noun == noun:
                                 return self.is_available()
                 return False
+
+class CommandContinuation(Logic):
+        def __init__(self, game, extracted_action):
+                Logic.__init__(self, game, extracted_action)
+        
+        def check_continuation(self):
+                return self.is_available()
+

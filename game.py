@@ -1,4 +1,4 @@
-from execution import Occurance, Command
+from execution import Occurance, Command, CommandContinuation
 
 class Game():
         """This is the root object containing the game state.
@@ -30,6 +30,8 @@ class Game():
         wants_room_update - set when the room has changed, but immediate
                             redisplay is not needed. Again, clear this yourself.
         game_over - set when the game is over and should exit
+
+        continuing_commands - set to continue executing actions, but only 'continuing' ones
         """
 
         def __init__(self, extracted):
@@ -111,7 +113,8 @@ class Game():
                 self.logics = []
                 for ea in extracted.actions:
                         if ea.verb == 0:
-                                self.logics.append(Occurance(self, ea))
+                                if ea.noun == 0: self.logics.append(CommandContinuation(self, ea))
+                                else: self.logics.append(Occurance(self, ea))
                         else:
                                 self.logics.append(Command(self, extracted, ea))
 
@@ -214,6 +217,8 @@ class Game():
                         if self.light_remaining <= 0:
                                 self.lamp_exhausted_flag.state = True
 
+                self.continuing_logics = False
+
                 for l in self.logics:
                         if l.check_occurance():
                                 l.execute()
@@ -225,9 +230,19 @@ class Game():
                 updates the game state, and it can raise exceptions for errors.
                 """
 
+                self.continuing_commands = False
+
                 for l in self.logics:
-                        if l.check_command(verb, noun):
-                                return l.execute()
+                        if self.continuing_commands:
+                                if l.check_continuation():
+                                        l.execute()
+                        elif l.check_command(verb, noun):
+                                l.execute()
+                                if not self.continuing_commands: return
+
+                # If this is set, we did hit some command, but then continued. We
+                # still need to avoid the default stuff below!
+                if self.continuing_commands: return
 
                 if verb is None or verb == self.go_word:
                         next = self.player_room.get_move(noun)
