@@ -182,7 +182,7 @@ class Occurance(Logic):
                 self.chance = extracted_action.noun
         
         def check_occurance(self):
-                return self.is_available() and randint(0, 100) <= self.chance
+                return self.is_available() and randint(1, 100) <= self.chance
 
 class Command(Logic):
         """These logics handle specific user commands."""

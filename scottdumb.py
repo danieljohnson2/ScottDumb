@@ -2,6 +2,9 @@
 from game import Game
 from extraction import ExtractedFile
 from sys import argv
+from random import seed
+
+seed()
 
 f = open(argv[1], "r")
 ex = ExtractedFile(f)
