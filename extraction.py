@@ -192,7 +192,8 @@ def group_words(words):
         buffer = []
         for word in words:
                 if word not in (".", "*."): # This must be the padding, I think
-                        if word[0] == "*": buffer.append(word[1:])
+                        if word == "": pass
+                        elif word[0] == "*": buffer.append(word[1:])
                         elif len(buffer) == 0: buffer.append(word)
                         else:
                                 grouped.append(buffer)
