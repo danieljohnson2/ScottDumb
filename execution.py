@@ -79,7 +79,7 @@ class Logic():
                 if op == 14: return lambda: self.game.items[val].room != None
                 if op == 17: return lambda: self.game.items[val].room == self.game.items[val].starting_room
                 if op == 18: return lambda: self.game.items[val].room != self.game.items[val].starting_room
-                return undefined
+                return undefined()
 
         def create_action(self, op, value_source):
                 """Returns a function (no arguments, returns nothing) that implements
@@ -108,6 +108,9 @@ class Logic():
                 def save_game(): self.game.save_game("scott.sav")
                 def continue_actions(): self.game.continuing_commands = True
                 def swap_items(): self.game.swap_items(self.game.items[item1_index], self.game.items[item2_index])
+                def put_item_with():
+                        dest = self.game.items[item2_index].room
+                        self.game.move_item(self.game.items[item1_index], dest)
                 def refill_lamp():
                         self.game.light_remaining = self.game.light_duration
                         self.game.move_item(self.game.lamp_item, self.game.inventory)
@@ -165,11 +168,15 @@ class Logic():
                 if op == 74:
                         item_index = value_source()
                         return superget_item
+                if op == 75:
+                        item1_index = value_source()
+                        item2_index = value_source()
+                        return put_item_with
                 if op == 84: return lambda: self.game.output(self.game.parsed_noun)
                 if op == 85: return lambda: self.game.output_line(self.game.parsed_noun)
                 if op == 86: return lambda: self.game.output_line()
                 if op >= 102: return lambda: self.game.output_line(self.game.messages[op - 50])
-                return undefined
+                return undefined()
 
 class Occurance(Logic):
         """These logics run before user input, and let the game take actions
