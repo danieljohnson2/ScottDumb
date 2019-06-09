@@ -77,8 +77,8 @@ class Logic():
                 if op == 11: return lambda: len(game.inventory.get_items()) == 0
                 if op == 12:
                         return lambda: game.items[val].room not in [game.player_room, game.inventory]
-                if op == 13: return lambda: game.items[val].room == None
-                if op == 14: return lambda: game.items[val].room != None
+                if op == 13: return lambda: game.items[val].room != None
+                if op == 14: return lambda: game.items[val].room == None
                 if op == 15: return lambda: game.counter <= val
                 if op == 16: return lambda: game.counter > val
                 if op == 17: return lambda: game.items[val].room == game.items[val].starting_room
