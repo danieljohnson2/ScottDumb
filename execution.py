@@ -98,17 +98,15 @@ class Logic():
                 
                 def clear_screen(): pass # we don't do this
 
-                def get_item(): game.get_item(game.items[item_index])
-                def superget_item(): game.get_item(game.items[item_index], force = True)
-                def drop_item(): game.drop_item(game.items[item_index])
-                def move_item(): game.move_item(game.items[item_index], game.rooms[room_index])
-                def remove_item(): game.move_item(game.items[item_index], None)
-                def swap_items(): game.swap_items(game.items[item1_index], game.items[item2_index])
-                def put_item_with():
-                        dest = game.items[item2_index].room
-                        game.move_item(game.items[item1_index], dest)
+                def get_item(): game.get_item(item)
+                def superget_item(): game.get_item(item, force = True)
+                def drop_item(): game.drop_item(item)
+                def move_item(): game.move_item(item, room)
+                def remove_item(): game.move_item(item, None)
+                def swap_items(): game.swap_items(item1, item2)
+                def put_item_with(): game.move_item(item1, item2.room)
 
-                def move_player(): game.move_player(game.rooms[room_index])
+                def move_player(): game.move_player(room)
                 
                 def set_counter(): game.counter = counter_value
                 def add_counter(): game.counter += counter_value
@@ -116,12 +114,12 @@ class Logic():
                 def decrement_counter(): game.counter -= 1
                 def print_counter(): game.output(f"{game.counter} ")
 
-                def set_flag(): game.flags[flag_index].state = True
-                def reset_flag(): game.flags[flag_index].state = False
+                def set_flag(): flag.state = True
+                def reset_flag(): flag.state = False
 
                 def die():
                         game.move_player(game.rooms[len(game.rooms) - 1])
-                        game.flags[15].state = False # darkness flag
+                        game.dark_flag.state = False
                 def game_over(): game.game_over = True
                 def check_score() : game.check_score()
                 def save_game(): game.save_game("scott.sav")
@@ -137,58 +135,58 @@ class Logic():
                 if op == 0: return lambda: None
                 if op <= 51: return lambda: game.output_line(game.messages[op])
                 if op == 52:
-                        item_index = value_source()
+                        item = game.items[value_source()]
                         return get_item
                 if op == 53:
-                        item_index = value_source()
+                        item = game.items[value_source()]
                         return drop_item
                 if op == 54:
-                        room_index = value_source()
+                        room = game.rooms[value_source()]
                         return move_player
                 if op == 55 or op == 59:
-                        item_index = value_source()
+                        item = game.items[value_source()]
                         return remove_item
                 if op == 56:
-                        flag_index = 15 # darkness flag
+                        flag = game.dark_flag
                         return set_flag
                 if op == 57:
-                        flag_index = 15 # darkness flag
+                        flag = game.dark_flag
                         return reset_flag
                 if op == 58:
-                        flag_index = value_source()
+                        flag = game.flags[value_source()]
                         return set_flag
                 if op == 60:
-                        flag_index = value_source()
+                        flag = game.flags[value_source()]
                         return reset_flag
                 if op == 61: return die
                 if op == 62:
-                        item_index = value_source()
-                        room_index = value_source()
+                        item = game.items[value_source()]
+                        room = game.rooms[value_source()]
                         return move_item
                 if op == 63: return game_over
                 if op == 64 or op == 76: return describe_room
                 if op == 65: return check_score
                 if op == 66: return lambda: game.output_line(game.get_inventory_text())
                 if op == 67:
-                        flag_index = 0
+                        flag = game.flags[0]
                         return set_flag
                 if op == 68:
-                        flag_index = 0
+                        flag = game.flags[0]
                         return reset_flag
                 if op == 69: return refill_lamp
                 if op == 70: return clear_screen
                 if op == 71: return save_game
                 if op == 72:
-                        item1_index = value_source()
-                        item2_index = value_source()
+                        item1 = game.items[value_source()]
+                        item2 = game.items[value_source()]
                         return swap_items
                 if op == 73: return continue_actions
                 if op == 74:
-                        item_index = value_source()
+                        item = game.items[value_source()]
                         return superget_item
                 if op == 75:
-                        item1_index = value_source()
-                        item2_index = value_source()
+                        item1 = game.items[value_source()]
+                        item2 = game.items[value_source()]
                         return put_item_with
                 if op == 77: return decrement_counter
                 if op == 78: return print_counter
