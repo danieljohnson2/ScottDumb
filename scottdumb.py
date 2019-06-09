@@ -30,6 +30,7 @@ while not g.game_over:
                         g.needs_room_update = False
                         g.wants_room_update = False
                 
+                print(f"Counter: {g.counter}")
                 cmd = input("What should I do? ")
                 verb, noun = g.parse_command(cmd)
                 

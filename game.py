@@ -124,6 +124,8 @@ class Game():
                         else:
                                 self.commands.append(Command(self, extracted, ea))
 
+
+                self.counter = 0
                 self.output_text = ""
 
         def output(self, text):
