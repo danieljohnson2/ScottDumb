@@ -17,8 +17,8 @@ class CliGame(Game):
 
 seed()
 
-f = open(argv[1], "r")
-ex = ExtractedFile(f)
+with open(argv[1], "r") as f:
+        ex = ExtractedFile(f)
 
 if len(argv) >= 3:
         g = CliGame(ex, argv[2])

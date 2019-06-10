@@ -334,23 +334,22 @@ class Game():
                 path = self.get_save_game_path()
                 if path is None: return
 
-                file = open(path, "w")
-               
-                # counters and saved rooms, which we don't support yet.
-                for n in range(0, 16):
-                        file.write("0 0\n")
+                with open(path, "w") as file:
+                        # counters and saved rooms, which we don't support yet.
+                        for n in range(0, 16):
+                                file.write("0 0\n")
 
-                bitflags = 0
-                for f in reversed(self.flags):
-                        bitflags = bitflags << 1
-                        if f.state: bitflags = bitflags | 1
-                dark = 1 if self.dark_flag.state else 0
-                player_room_index = get_room_index(self.player_room)
+                        bitflags = 0
+                        for f in reversed(self.flags):
+                                bitflags = bitflags << 1
+                                if f.state: bitflags = bitflags | 1
+                        dark = 1 if self.dark_flag.state else 0
+                        player_room_index = get_room_index(self.player_room)
 
-                file.write(f"{bitflags} {dark} {player_room_index} {self.counter} 0 {self.light_remaining}\n")
+                        file.write(f"{bitflags} {dark} {player_room_index} {self.counter} 0 {self.light_remaining}\n")
 
-                for item in self.items:
-                        file.write(f"{get_room_index(item.room)}\n")
+                        for item in self.items:
+                                file.write(f"{get_room_index(item.room)}\n")
 
         def get_save_game_path(self):
                 """Provides the path to the file when saving the game; can return None to cancel."""
@@ -366,24 +365,23 @@ class Game():
                 path = self.get_load_game_path()
                 if path is None: return
 
-                file = open(path, "r")
-                
-                # counters and saved rooms, which we don't support yet.
-                for n in range(0, 16):
-                        file.readline()
+                with open(path, "r") as file:
+                        # counters and saved rooms, which we don't support yet.
+                        for n in range(0, 16):
+                                file.readline()
 
-                state = file.readline().split()
-                bitflags = int(state[0])
-                for f in self.flags:
-                        f.state = (bitflags & 1) != 0
-                        bitflags = bitflags >> 1
+                        state = file.readline().split()
+                        bitflags = int(state[0])
+                        for f in self.flags:
+                                f.state = (bitflags & 1) != 0
+                                bitflags = bitflags >> 1
 
-                self.player_room = find_room(int(state[2]))
-                self.counter = int(state[3])
-                self.light_remaining = int(state[5])
+                        self.player_room = find_room(int(state[2]))
+                        self.counter = int(state[3])
+                        self.light_remaining = int(state[5])
 
-                for item in self.items:
-                        item.room = find_room(int(file.readline()))
+                        for item in self.items:
+                                item.room = find_room(int(file.readline()))
                         
         def get_load_game_path(self):
                 """Provides the path to the file when loading the game; can return None to cancel."""
