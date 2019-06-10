@@ -4,14 +4,28 @@ from extraction import ExtractedFile
 from sys import argv
 from random import seed
 
+class CliGame(Game):
+        def __init__(self, file, save_game_path):
+                Game.__init__(self, file)
+                self.save_game_path = save_game_path
+
+        def get_save_game_path(self):
+                return self.save_game_path
+
+        def get_load_game_path(self):
+                return self.save_game_path
+
 seed()
 
 f = open(argv[1], "r")
 ex = ExtractedFile(f)
-g = Game(ex)
 
-if len(argv)>=3:
-        g.load_game(argv[2])
+if len(argv) >= 3:
+        g = CliGame(ex, argv[2])
+        try: g.load_game()
+        except FileNotFoundError: pass
+else:
+        g = Game(ex)
 
 while not g.game_over:
         try:

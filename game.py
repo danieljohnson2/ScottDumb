@@ -326,12 +326,15 @@ class Game():
                 item2.room = tmp
                 self.wants_room_update = True
 
-        def save_game(self, file_name):
+        def save_game(self):
                 """Saves the game to the file named using the ScottFree format."""
                 def get_room_index(r):
                         return 0 if r is None else r.index
 
-                file = open(file_name, "w")
+                path = self.get_save_game_path()
+                if path is None: return
+
+                file = open(path, "w")
                
                 # counters and saved rooms, which we don't support yet.
                 for n in range(0, 16):
@@ -349,14 +352,21 @@ class Game():
                 for item in self.items:
                         file.write(f"{get_room_index(item.room)}\n")
 
-        def load_game(self, file_name):
+        def get_save_game_path(self):
+                """Provides the path to the file when saving the game; can return None to cancel."""
+                return "scott.sav"
+
+        def load_game(self):
                 """Loads the game from the file named, which is in the ScottFree format."""
                 def find_room(index):
                         if index == -1: return self.inventory
                         elif index == 0: return None
                         else: return self.rooms[index]
 
-                file = open(file_name, "r")
+                path = self.get_load_game_path()
+                if path is None: return
+
+                file = open(path, "r")
                 
                 # counters and saved rooms, which we don't support yet.
                 for n in range(0, 16):
@@ -375,7 +385,9 @@ class Game():
                 for item in self.items:
                         item.room = find_room(int(file.readline()))
                         
-                
+        def get_load_game_path(self):
+                """Provides the path to the file when loading the game; can return None to cancel."""
+                return "scott.sav"
                         
 class Word():
         """Represents a word in the vocabulary; these are interned, so duplicate

@@ -122,7 +122,7 @@ class Logic():
                         game.dark_flag.state = False
                 def game_over(): game.game_over = True
                 def check_score() : game.check_score()
-                def save_game(): game.save_game("scott.sav")
+                def save_game(): game.save_game()
                 def describe_room(): game.needs_room_update = True
                 def refill_lamp():
                         game.light_remaining = game.light_duration
