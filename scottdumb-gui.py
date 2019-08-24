@@ -36,9 +36,17 @@ class GameWindow(Gtk.Window):
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
 
+        cmdBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        
+        command_label = Gtk.Label(label=">")
+        command_label.set_margin_start(5)
         self.command_entry = Gtk.Entry()
         self.command_entry.connect("activate", self.on_command_activate)
-        vBox.pack_end(self.command_entry, False, False, 5)
+        self.command_entry.set_margin_end(5)
+        cmdBox.pack_start(command_label, False, False, 0)
+        cmdBox.pack_end(self.command_entry, True, True, 0)
+
+        vBox.pack_end(cmdBox, False, False, 5)
 
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
@@ -77,6 +85,7 @@ class GameWindow(Gtk.Window):
         if not game.game_over:
             game.perform_occurances()
             self.print(game.extract_output(), end = "")
+            self.command_entry.grab_focus()
 
     def on_command_activate(self, data):
         game = self.game
