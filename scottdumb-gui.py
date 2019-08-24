@@ -120,7 +120,8 @@ class GameWindow(Gtk.Window):
             buffer.set_text(text)
             view = Gtk.TextView(buffer=buffer, editable=False)
             view.set_wrap_mode(Gtk.WrapMode.WORD)
-            self.script_box.pack_start(view, False, False, 0)
+            self.script_box.pack_end(view, False, False, 0)
+            self.script_box.reorder_child(view, 0)
             view.show()
         GLib.idle_add(self.scroll_to_bottom)
         
@@ -147,14 +148,13 @@ class GameWindow(Gtk.Window):
     def before_turn(self):
         game = self.game
 
-        self.update_room_view()
-
         if not game.game_over:
             game.perform_occurances()
             self.print(game.extract_output(), end = "")
             self.command_entry.grab_focus()
 
         self.flush_output()
+        self.update_room_view()
 
     def on_load_game(self, data):
         game = self.game
@@ -179,8 +179,8 @@ class GameWindow(Gtk.Window):
                 verb, noun = game.parse_command(cmd)
    
                 self.print("> " + cmd + "\n")
-                game.perform_command(verb, noun)
                 self.flush_output()
+                game.perform_command(verb, noun)
                 self.print(game.extract_output(), end = "")
             except Exception as e:
                 self.print(str(e))
