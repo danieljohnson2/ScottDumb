@@ -356,14 +356,17 @@ class Game():
                 return "scott.sav"
 
         def load_game(self):
-                """Loads the game from the file named, which is in the ScottFree format."""
+                """
+                Loads the game from the file named, which is in the ScottFree format.
+                Returns True if the game was loaded, and False if this was cancelled.
+                """
                 def find_room(index):
                         if index == -1: return self.inventory
                         elif index == 0: return None
                         else: return self.rooms[index]
 
                 path = self.get_load_game_path()
-                if path is None: return
+                if path is None: return False
 
                 with open(path, "r") as file:
                         # counters and saved rooms, which we don't support yet.
@@ -382,6 +385,9 @@ class Game():
 
                         for item in self.items:
                                 item.room = find_room(int(file.readline()))
+
+                self.needs_room_update = True
+                return True
                         
         def get_load_game_path(self):
                 """Provides the path to the file when loading the game; can return None to cancel."""

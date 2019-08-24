@@ -11,6 +11,12 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
 
+def make_filter(name, pattern):
+    f = Gtk.FileFilter()
+    f.set_name(name)
+    f.add_pattern(pattern)
+    return f
+
 class GuiGame(Game):
         def __init__(self, file):
             Game.__init__(self, file)
@@ -22,7 +28,8 @@ class GuiGame(Game):
             dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
             dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
             dlg.set_default_response(Gtk.ResponseType.OK)
-
+            dlg.add_filter(make_filter("Saved Games", "*.sav"))
+            dlg.add_filter(make_filter("All Files", "*"))
             try:
                 if (dlg.run() == Gtk.ResponseType.OK):
                     return dlg.get_filename()
@@ -32,7 +39,21 @@ class GuiGame(Game):
                 dlg.destroy()
 
         def get_load_game_path(self):
-            return None
+            dlg = Gtk.FileChooserDialog(title="Load Game",
+                parent=self.window,
+                action=Gtk.FileChooserAction.OPEN)
+            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+            dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+            dlg.set_default_response(Gtk.ResponseType.OK)
+            dlg.add_filter(make_filter("Saved Games", "*.sav"))
+            dlg.add_filter(make_filter("All Files", "*"))
+            try:
+                if (dlg.run() == Gtk.ResponseType.OK):
+                    return dlg.get_filename()
+                else:
+                    return None
+            finally:
+                dlg.destroy()
 
 class GameWindow(Gtk.Window):
     def __init__(self, game):
@@ -105,9 +126,16 @@ class GameWindow(Gtk.Window):
             try:
                 cmd = self.command_entry.get_text()
                 self.command_entry.set_text("")
+
+                if cmd == "l":
+                    if game.load_game():
+                        self.script_buffer.set_text("")
+                        self.before_turn()
+                    return
+
                 verb, noun = game.parse_command(cmd)
    
-                self.print("> " + cmd)             
+                self.print("> " + cmd)
                 game.perform_command(verb, noun)
                 self.print(game.extract_output(), end = "")
             except Exception as e:
