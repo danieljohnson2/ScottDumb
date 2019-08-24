@@ -59,6 +59,7 @@ class GameWindow(Gtk.Window):
     def __init__(self, game):
         Gtk.Window.__init__(self)
         self.game = game
+        self.current_buffer = ""
 
         self.header_bar = Gtk.HeaderBar()
         self.header_bar.set_title("Scott Dumb")
@@ -78,9 +79,8 @@ class GameWindow(Gtk.Window):
         self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
         self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
 
-        self.script_buffer = Gtk.TextBuffer()
-        self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
-        self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        self.script_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.script_box.override_background_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(1,1,1,1))
 
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
@@ -100,7 +100,7 @@ class GameWindow(Gtk.Window):
 
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroller.add(self.script_view)
+        self.scroller.add(self.script_box)
         vBox.pack_end(self.scroller, True, True, 0)
 
         self.add(vBox)
@@ -109,9 +109,26 @@ class GameWindow(Gtk.Window):
         self.before_turn()
 
     def print(self, text, end="\n"):
-        iter = self.script_buffer.get_end_iter()
-        self.script_buffer.insert(iter, text+end)
+        self.current_buffer += text
+
+    def flush_output(self):
+        text = self.current_buffer.strip()
+        self.current_buffer = ""
+
+        if text != "":
+            buffer = Gtk.TextBuffer()
+            buffer.set_text(text)
+            view = Gtk.TextView(buffer=buffer, editable=False)
+            view.set_wrap_mode(Gtk.WrapMode.WORD)
+            self.script_box.pack_start(view, False, False, 0)
+            self.script_box.show_all()
         GLib.idle_add(self.scroll_to_bottom)
+        
+    def clear_output(self):
+        self.current_buffer = ""
+        kids = self.script_box.get_children()
+        for ch in kids: self.script_box.remove(ch)
+        self.script_box.show_all()
 
     def scroll_to_bottom(self):
         adj = self.scroller.get_vadjustment()
@@ -137,10 +154,14 @@ class GameWindow(Gtk.Window):
             self.print(game.extract_output(), end = "")
             self.command_entry.grab_focus()
 
+        self.flush_output()
+
     def on_load_game(self, data):
         game = self.game
         if game.load_game():
-            self.script_buffer.set_text("Game loaded.\n")
+            self.clear_output()
+            self.print("Game loaded.\n")
+            self.flush_output()
             self.update_room_view()
             self.command_entry.grab_focus()
 
@@ -157,8 +178,9 @@ class GameWindow(Gtk.Window):
 
                 verb, noun = game.parse_command(cmd)
    
-                self.print("> " + cmd)
+                self.print("> " + cmd + "\n")
                 game.perform_command(verb, noun)
+                self.flush_output()
                 self.print(game.extract_output(), end = "")
             except Exception as e:
                 self.print(str(e))
