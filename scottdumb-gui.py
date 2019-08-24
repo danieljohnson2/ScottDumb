@@ -121,7 +121,7 @@ class GameWindow(Gtk.Window):
             view = Gtk.TextView(buffer=buffer, editable=False)
             view.set_wrap_mode(Gtk.WrapMode.WORD)
             self.script_box.pack_start(view, False, False, 0)
-            self.script_box.show_all()
+            view.show()
         GLib.idle_add(self.scroll_to_bottom)
         
     def clear_output(self):
