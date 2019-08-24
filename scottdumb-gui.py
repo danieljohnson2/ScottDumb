@@ -64,11 +64,11 @@ class GameWindow(Gtk.Window):
         self.header_bar.set_title("Scott Dumb")
         self.header_bar.set_show_close_button(True)
     
-        self.load_button = Gtk.Button(label="Load")
+        self.load_button = Gtk.Button(label="_Load", use_underline=True)
         self.load_button.connect("clicked", self.on_load_game)
         self.header_bar.pack_start(self.load_button)
 
-        self.save_button = Gtk.Button(label="Save")
+        self.save_button = Gtk.Button(label="_Save", use_underline=True)
         self.save_button.connect("clicked", self.on_save_game)
         self.header_bar.pack_end(self.save_button)
 
