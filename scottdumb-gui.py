@@ -35,10 +35,16 @@ class GameWindow(Gtk.Window):
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
+
+        self.command_entry = Gtk.Entry()
+        self.command_entry.connect("activate", self.on_command_activate)
+        vBox.pack_end(self.command_entry, False, False, 5)
+
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.scroller.add(self.script_view)
         vBox.pack_end(self.scroller, True, True, 0)
+
         self.add(vBox)
 
         self.set_default_size(900, 300)
@@ -55,41 +61,39 @@ class GameWindow(Gtk.Window):
 
     def update_room_view(self):
         game = self.game
-        if game.wants_room_update:
+        if game.wants_room_update or game.needs_room_update:
             text = game.player_room.get_look_text()
             self.room_buffer.set_text(text)
             game.needs_room_update = False
             game.wants_room_update = False
+
+        self.command_entry.set_sensitive(not game.game_over)
 
     def before_turn(self):
         game = self.game
 
         self.update_room_view()
 
-        game.perform_occurances()
-        self.print(game.extract_output(), end = "")
+        if not game.game_over:
+            game.perform_occurances()
+            self.print(game.extract_output(), end = "")
 
-        if game.needs_room_update:
-                print(game.player_room.get_look_text())
-                game.needs_room_update = False
-                game.wants_room_update = False
-
-    def loop(self):
+    def on_command_activate(self, data):
         game = self.game
-        while not game.game_over:
+        if not game.game_over:
             try:
-                self.before_turn()
-                if game.game_over: break
-
-                cmd = input("What should I do? ")
+                cmd = self.command_entry.get_text()
+                self.command_entry.set_text("")
                 verb, noun = game.parse_command(cmd)
-                
+   
+                self.print("> " + cmd)             
                 game.perform_command(verb, noun)
                 self.print(game.extract_output(), end = "")
-            except EOFError:
-                    exit()
             except Exception as e:
-                    self.print(str(e))
+                self.print(str(e))
+
+        self.before_turn()
+            
 seed()
 
 with open(argv[1], "r") as f:
