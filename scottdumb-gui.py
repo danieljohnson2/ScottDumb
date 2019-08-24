@@ -18,8 +18,9 @@ class GuiGame(Game):
         def get_save_game_path(self):
             dlg = Gtk.FileChooserDialog(title="Save Game",
                 parent=self.window,
-                action=Gtk.FileChooserAction.SAVE,
-                buttons=[Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK])
+                action=Gtk.FileChooserAction.SAVE)
+            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+            dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
             dlg.set_default_response(Gtk.ResponseType.OK)
 
             try:
