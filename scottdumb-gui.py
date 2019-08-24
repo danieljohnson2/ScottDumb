@@ -57,13 +57,26 @@ class GuiGame(Game):
 
 class GameWindow(Gtk.Window):
     def __init__(self, game):
-        Gtk.Window.__init__(self, title="Scott Dumb")
+        Gtk.Window.__init__(self)
         self.game = game
+
+        self.header_bar = Gtk.HeaderBar()
+        self.header_bar.set_title("Scott Dumb")
+        self.header_bar.set_show_close_button(True)
+    
+        self.load_button = Gtk.Button(label="Load")
+        self.load_button.connect("clicked", self.on_load_game)
+        self.header_bar.pack_start(self.load_button)
+
+        self.set_titlebar(self.header_bar)
+
         self.room_buffer = Gtk.TextBuffer()
         self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
+        self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
 
         self.script_buffer = Gtk.TextBuffer()
         self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
+        self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
 
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
@@ -82,13 +95,13 @@ class GameWindow(Gtk.Window):
         vBox.pack_end(cmdBox, False, False, 5)
 
         self.scroller = Gtk.ScrolledWindow()
-        self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroller.add(self.script_view)
         vBox.pack_end(self.scroller, True, True, 0)
 
         self.add(vBox)
 
-        self.set_default_size(900, 300)
+        self.set_default_size(900, 500)
         self.before_turn()
 
     def print(self, text, end="\n"):
@@ -120,18 +133,18 @@ class GameWindow(Gtk.Window):
             self.print(game.extract_output(), end = "")
             self.command_entry.grab_focus()
 
+    def on_load_game(self, data):
+        game = self.game
+        if game.load_game():
+            self.script_buffer.set_text("Game loaded.\n")
+            self.update_room_view()
+
     def on_command_activate(self, data):
         game = self.game
         if not game.game_over:
             try:
                 cmd = self.command_entry.get_text()
                 self.command_entry.set_text("")
-
-                if cmd == "l":
-                    if game.load_game():
-                        self.script_buffer.set_text("")
-                        self.before_turn()
-                    return
 
                 verb, noun = game.parse_command(cmd)
    
