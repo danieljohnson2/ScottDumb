@@ -35,15 +35,23 @@ class GameWindow(Gtk.Window):
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
-        vBox.pack_end(self.script_view, True, True, 0)
+        self.scroller = Gtk.ScrolledWindow()
+        self.scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.scroller.add(self.script_view)
+        vBox.pack_end(self.scroller, True, True, 0)
         self.add(vBox)
 
-        self.set_default_size(900, 500)
+        self.set_default_size(900, 300)
         self.before_turn()
 
     def print(self, text, end="\n"):
         iter = self.script_buffer.get_end_iter()
         self.script_buffer.insert(iter, text+end)
+        GLib.idle_add(self.scroll_to_bottom)
+
+    def scroll_to_bottom(self):
+        adj = self.scroller.get_vadjustment()
+        adj.set_value(adj.get_upper())
 
     def update_room_view(self):
         game = self.game
@@ -100,6 +108,4 @@ win = GameWindow(g)
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()
-
-
 
