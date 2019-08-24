@@ -68,6 +68,10 @@ class GameWindow(Gtk.Window):
         self.load_button.connect("clicked", self.on_load_game)
         self.header_bar.pack_start(self.load_button)
 
+        self.save_button = Gtk.Button(label="Save")
+        self.save_button.connect("clicked", self.on_save_game)
+        self.header_bar.pack_end(self.save_button)
+
         self.set_titlebar(self.header_bar)
 
         self.room_buffer = Gtk.TextBuffer()
@@ -138,6 +142,11 @@ class GameWindow(Gtk.Window):
         if game.load_game():
             self.script_buffer.set_text("Game loaded.\n")
             self.update_room_view()
+            self.command_entry.grab_focus()
+
+    def on_save_game(self, data):
+        game = self.game
+        game.save_game()
 
     def on_command_activate(self, data):
         game = self.game

@@ -386,6 +386,7 @@ class Game():
                         for item in self.items:
                                 item.room = find_room(int(file.readline()))
 
+                self.game_over = False
                 self.needs_room_update = True
                 return True
                         
