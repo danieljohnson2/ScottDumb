@@ -1,0 +1,105 @@
+#!/usr/bin/python3
+from game import Game
+from extraction import ExtractedFile
+
+from sys import argv
+from random import seed
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GLib
+
+class GuiGame(Game):
+        def __init__(self, file, save_game_path):
+                Game.__init__(self, file)
+                self.save_game_path = save_game_path
+
+        def get_save_game_path(self):
+                return self.save_game_path
+
+        def get_load_game_path(self):
+                return self.save_game_path
+
+class GameWindow(Gtk.Window):
+    def __init__(self, game):
+        Gtk.Window.__init__(self, title="Scott Dumb")
+        self.game = game
+        self.room_buffer = Gtk.TextBuffer()
+        self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
+
+        self.script_buffer = Gtk.TextBuffer()
+        self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
+
+        vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        vBox.pack_start(self.room_view, False, False, 0)
+        vBox.pack_start(Gtk.Separator(), False, False, 0)
+        vBox.pack_end(self.script_view, True, True, 0)
+        self.add(vBox)
+
+        self.set_default_size(900, 500)
+        self.before_turn()
+
+    def print(self, text, end="\n"):
+        iter = self.script_buffer.get_end_iter()
+        self.script_buffer.insert(iter, text+end)
+
+    def update_room_view(self):
+        game = self.game
+        if game.wants_room_update:
+            text = game.player_room.get_look_text()
+            self.room_buffer.set_text(text)
+            game.needs_room_update = False
+            game.wants_room_update = False
+
+    def before_turn(self):
+        game = self.game
+
+        self.update_room_view()
+
+        game.perform_occurances()
+        self.print(game.extract_output(), end = "")
+
+        if game.needs_room_update:
+                print(game.player_room.get_look_text())
+                game.needs_room_update = False
+                game.wants_room_update = False
+
+    def loop(self):
+        game = self.game
+        while not game.game_over:
+            try:
+                self.before_turn()
+                if game.game_over: break
+
+                cmd = input("What should I do? ")
+                verb, noun = game.parse_command(cmd)
+                
+                game.perform_command(verb, noun)
+                self.print(game.extract_output(), end = "")
+            except EOFError:
+                    exit()
+            except Exception as e:
+                    self.print(str(e))
+seed()
+
+with open(argv[1], "r") as f:
+        ex = ExtractedFile(f)
+
+if len(argv) >= 3:
+        g = GuiGame(ex, argv[2])
+        try: game.load_game()
+        except FileNotFoundError: pass
+else:
+        g = Game(ex)
+
+
+
+win = GameWindow(g)
+win.connect("delete-event", Gtk.main_quit)
+win.show_all()
+Gtk.main()
+
+
+
