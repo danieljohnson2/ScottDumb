@@ -12,15 +12,26 @@ from gi.repository import Gdk
 from gi.repository import GLib
 
 class GuiGame(Game):
-        def __init__(self, file, save_game_path):
-                Game.__init__(self, file)
-                self.save_game_path = save_game_path
+        def __init__(self, file):
+            Game.__init__(self, file)
 
         def get_save_game_path(self):
-                return self.save_game_path
+            dlg = Gtk.FileChooserDialog(title="Save Game",
+                parent=self.window,
+                action=Gtk.FileChooserAction.SAVE,
+                buttons=[Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE, Gtk.ResponseType.OK])
+            dlg.set_default_response(Gtk.ResponseType.OK)
+
+            try:
+                if (dlg.run() == Gtk.ResponseType.OK):
+                    return dlg.get_filename()
+                else:
+                    return None
+            finally:
+                dlg.destroy()
 
         def get_load_game_path(self):
-                return self.save_game_path
+            return None
 
 class GameWindow(Gtk.Window):
     def __init__(self, game):
@@ -106,18 +117,12 @@ class GameWindow(Gtk.Window):
 seed()
 
 with open(argv[1], "r") as f:
-        ex = ExtractedFile(f)
+    ex = ExtractedFile(f)
 
-if len(argv) >= 3:
-        g = GuiGame(ex, argv[2])
-        try: game.load_game()
-        except FileNotFoundError: pass
-else:
-        g = Game(ex)
-
-
-
+g = GuiGame(ex)
 win = GameWindow(g)
+g.window = win
+
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()
