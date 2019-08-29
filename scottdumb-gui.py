@@ -12,53 +12,65 @@ from gi.repository import Gdk
 from gi.repository import GLib
 
 def make_filter(name, pattern):
+    """Builds a GTK file-filter conveniently."""
     f = Gtk.FileFilter()
     f.set_name(name)
     f.add_pattern(pattern)
     return f
 
 class GuiGame(Game):
-        def __init__(self, file):
-            Game.__init__(self, file)
+    """This game subclass uses file chooser dialogs to prompt for save or load file names."""
+    def __init__(self, extracted_game, window):
+        Game.__init__(self, extracted_game)
+        self.window = window
 
-        def get_save_game_path(self):
-            dlg = Gtk.FileChooserDialog(title="Save Game",
-                parent=self.window,
-                action=Gtk.FileChooserAction.SAVE)
-            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-            dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-            dlg.set_default_response(Gtk.ResponseType.OK)
-            dlg.add_filter(make_filter("Saved Games", "*.sav"))
-            dlg.add_filter(make_filter("All Files", "*"))
-            try:
-                if (dlg.run() == Gtk.ResponseType.OK):
-                    return dlg.get_filename()
-                else:
-                    return None
-            finally:
-                dlg.destroy()
+    def get_save_game_path(self):
+        dlg = Gtk.FileChooserDialog(title="Save Game",
+            parent=self.window,
+            action=Gtk.FileChooserAction.SAVE)
+        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+        dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        dlg.add_filter(make_filter("Saved Games", "*.sav"))
+        dlg.add_filter(make_filter("All Files", "*"))
+        try:
+            if (dlg.run() == Gtk.ResponseType.OK):
+                return dlg.get_filename()
+            else:
+                return None
+        finally:
+            dlg.destroy()
 
-        def get_load_game_path(self):
-            dlg = Gtk.FileChooserDialog(title="Load Game",
-                parent=self.window,
-                action=Gtk.FileChooserAction.OPEN)
-            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-            dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-            dlg.set_default_response(Gtk.ResponseType.OK)
-            dlg.add_filter(make_filter("Saved Games", "*.sav"))
-            dlg.add_filter(make_filter("All Files", "*"))
-            try:
-                if (dlg.run() == Gtk.ResponseType.OK):
-                    return dlg.get_filename()
-                else:
-                    return None
-            finally:
-                dlg.destroy()
+    def get_load_game_path(self):
+        dlg = Gtk.FileChooserDialog(title="Load Game",
+            parent=self.window,
+            action=Gtk.FileChooserAction.OPEN)
+        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+        dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        dlg.add_filter(make_filter("Saved Games", "*.sav"))
+        dlg.add_filter(make_filter("All Files", "*"))
+        try:
+            if (dlg.run() == Gtk.ResponseType.OK):
+                return dlg.get_filename()
+            else:
+                return None
+        finally:
+            dlg.destroy()
 
 class GameWindow(Gtk.Window):
-    def __init__(self, game):
+    """
+    This window displays the game output in two sections; a top section shows
+    the room description, and the lower shows the transcript as you go. An text
+    entry area allows command input, and a header bar lets you load and save your game.
+    """
+
+    def __init__(self, game_file):
         Gtk.Window.__init__(self)
-        self.game = game
+
+        with open(game_file, "r") as f:
+            self.game = GuiGame(ExtractedFile(f), self)
+
         self.current_buffer = ""
 
         self.header_bar = Gtk.HeaderBar()
@@ -108,10 +120,19 @@ class GameWindow(Gtk.Window):
         self.set_default_size(900, 500)
         self.before_turn()
 
-    def print(self, text, end="\n"):
+    def write_output(self, text, end="\n"):
+        """
+        Writes text to the transcript; by default it puts a line break after each write.
+        Text does not actually appear until you call flush_output().
+        """
+        
         self.current_buffer += text
 
     def flush_output(self):
+        """
+        Displays any pending output, if any. Each output is displayed in its own
+        text-view, so this will implicitly place a line break after the output.
+        """
         text = self.current_buffer.strip()
         self.current_buffer = ""
 
@@ -126,16 +147,22 @@ class GameWindow(Gtk.Window):
         GLib.idle_add(self.scroll_to_bottom)
         
     def clear_output(self):
+        """Clears the output in the window, and clears the output buffer."""
         self.current_buffer = ""
         kids = self.script_box.get_children()
         for ch in kids: self.script_box.remove(ch)
         self.script_box.show_all()
 
     def scroll_to_bottom(self):
+        """Scrolls the output window as far down as possible."""
         adj = self.scroller.get_vadjustment()
         adj.set_value(adj.get_upper())
 
     def update_room_view(self):
+        """
+        Generate the room description text afresh and displays it. The previous
+        room description is removed.
+        """
         game = self.game
         if game.wants_room_update or game.needs_room_update:
             text = game.player_room.get_look_text()
@@ -146,30 +173,36 @@ class GameWindow(Gtk.Window):
         self.command_entry.set_sensitive(not game.game_over)
 
     def before_turn(self):
+        """
+        Performs game logic that should happen before user commands are accepted.
+        This flushes output and updates the room view.
+        """        
         game = self.game
 
         if not game.game_over:
             game.perform_occurances()
-            self.print(game.extract_output(), end = "")
+            self.write_output(game.extract_output(), end = "")
             self.command_entry.grab_focus()
 
         self.flush_output()
         self.update_room_view()
 
     def on_load_game(self, data):
+        """Handles the load game button."""
         game = self.game
         if game.load_game():
             self.clear_output()
-            self.print("Game loaded.\n")
+            self.write_output("Game loaded.")
             self.flush_output()
             self.update_room_view()
             self.command_entry.grab_focus()
 
     def on_save_game(self, data):
-        game = self.game
-        game.save_game()
+        """Handles the save game button."""
+        self.game.save_game()
 
     def on_command_activate(self, data):
+        """Handles a user-enterd command when the user hits enter."""
         game = self.game
         if not game.game_over:
             try:
@@ -178,24 +211,17 @@ class GameWindow(Gtk.Window):
 
                 verb, noun = game.parse_command(cmd)
    
-                self.print("> " + cmd + "\n")
+                self.write_output("> " + cmd + "\n")
                 self.flush_output()
                 game.perform_command(verb, noun)
-                self.print(game.extract_output(), end = "")
+                self.write_output(game.extract_output(), end = "")
             except Exception as e:
-                self.print(str(e))
+                self.write_output(str(e))
 
         self.before_turn()
             
 seed()
-
-with open(argv[1], "r") as f:
-    ex = ExtractedFile(f)
-
-g = GuiGame(ex)
-win = GameWindow(g)
-g.window = win
-
+win = GameWindow(argv[1])
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()
