@@ -144,6 +144,11 @@ class GameWindow(Gtk.Window):
             self.script_box.pack_end(view, False, False, 0)
             self.script_box.reorder_child(view, 0)
             view.show()
+
+            # This is a nasty hack to try to get the view to have the
+            # correct size; it only works if deferred to idle time, and
+            # there is still flicker. Crap.
+            GLib.idle_add(view.queue_resize)
         GLib.idle_add(self.scroll_to_bottom)
         
     def clear_output(self):
