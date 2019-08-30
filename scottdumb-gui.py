@@ -90,14 +90,16 @@ class GameWindow(Gtk.Window):
         self.room_buffer = Gtk.TextBuffer()
         self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
         self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
 
-        self.script_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.script_box.override_background_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(1,1,1,1))
+        self.script_buffer = Gtk.TextBuffer()
+        self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
+        self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
 
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
-
+       
         cmdBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         
         command_label = Gtk.Label(label=">")
@@ -112,7 +114,7 @@ class GameWindow(Gtk.Window):
 
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroller.add(self.script_box)
+        self.scroller.add(self.script_view)
         vBox.pack_end(self.scroller, True, True, 0)
 
         self.add(vBox)
@@ -137,31 +139,32 @@ class GameWindow(Gtk.Window):
         self.current_buffer = ""
 
         if text != "":
-            buffer = Gtk.TextBuffer()
-            buffer.set_text(text)
-            view = Gtk.TextView(buffer=buffer, editable=False)
-            view.set_wrap_mode(Gtk.WrapMode.WORD)
-            self.script_box.pack_end(view, False, False, 0)
-            self.script_box.reorder_child(view, 0)
-            view.show()
+            iter = self.script_buffer.get_end_iter()
 
-            # This is a nasty hack to try to get the view to have the
-            # correct size; it only works if deferred to idle time, and
-            # there is still flicker. Crap.
-            GLib.idle_add(view.queue_resize)
-        GLib.idle_add(self.scroll_to_bottom)
-        
+            if self.script_buffer.get_char_count() > 0:
+                self.script_buffer.insert(iter, "\n"+text)
+            else:
+                self.script_buffer.insert(iter, text)
+
+            self.scroll_to_bottom()
+
     def clear_output(self):
         """Clears the output in the window, and clears the output buffer."""
         self.current_buffer = ""
-        kids = self.script_box.get_children()
-        for ch in kids: self.script_box.remove(ch)
-        self.script_box.show_all()
+        start = self.script_buffer.get_start_iter()
+        end = self.script_buffer.get_end_iter()
+        self.script_buffer.delete(start, end)
 
     def scroll_to_bottom(self):
         """Scrolls the output window as far down as possible."""
-        adj = self.scroller.get_vadjustment()
-        adj.set_value(adj.get_upper())
+        def do_scroll():
+            adj = self.scroller.get_vadjustment()
+            adj.set_value(adj.get_upper())
+
+        do_scroll()
+        # Scrolling may fail because the wigdets are not laid out yet;
+        # so this will try to do it again a little later.
+        GLib.idle_add(do_scroll)
 
     def update_room_view(self):
         """
@@ -191,6 +194,9 @@ class GameWindow(Gtk.Window):
 
         self.flush_output()
         self.update_room_view()
+
+    def on_room_view_size_allocate(self, allocation, data):
+        self.scroll_to_bottom()
 
     def on_load_game(self, data):
         """Handles the load game button."""
