@@ -80,10 +80,11 @@ class Logic():
                 return lambda: game.items[val].room not in [game.player_room, game.inventory]
         if op == 13: return lambda: game.items[val].room != None
         if op == 14: return lambda: game.items[val].room == None
-        if op == 15: return lambda: game.counter <= val
-        if op == 16: return lambda: game.counter > val
+        if op == 15: return lambda: game.counter.value <= val
+        if op == 16: return lambda: game.counter.value > val
         if op == 17: return lambda: game.items[val].room == game.items[val].starting_room
         if op == 18: return lambda: game.items[val].room != game.items[val].starting_room
+        if op == 19: return lambda: game.counter.value == val
         return undefined()
 
     def create_action(self, op, value_source):
@@ -109,11 +110,12 @@ class Logic():
 
         def move_player(): game.move_player(room)
 
-        def set_counter(): game.counter = counter_value
-        def add_counter(): game.counter += counter_value
-        def subtract_counter(): game.counter -= counter_value
-        def decrement_counter(): game.counter -= 1
-        def print_counter(): game.output(f"{game.counter} ")
+        def set_counter(): game.counter.value = counter_value
+        def swap_counter(): counter.swap(game)
+        def add_counter(): game.counter.value += counter_value
+        def subtract_counter(): game.counter.value -= counter_value
+        def decrement_counter(): game.counter.value -= 1
+        def print_counter(): game.output(f"{game.counter.value} ")
 
         def set_flag(): flag.state = True
         def reset_flag(): flag.state = False
@@ -194,6 +196,9 @@ class Logic():
         if op == 79:
             counter_value = value_source()
             return set_counter
+        if op == 81:
+            counter = game.counters[value_source()]
+            return swap_counter
         if op == 82:
             counter_value = value_source()
             return add_counter

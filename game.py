@@ -11,6 +11,7 @@ class Game():
     items - list of all Items
     messages - list of messages
     flags - list of 32 Flags
+    counters - list of 16 counters
     logics - list of all game logics
 
     dark_flag - the flag (#15) that is set when it is dark
@@ -46,6 +47,9 @@ class Game():
         self.wants_room_update = True
         self.game_over = False
 
+        self.counter = Counter()
+        self.counters = [Counter() for n in range(0, 16)]
+        
         self.flags = [Flag() for n in range(0, 32)]
         self.dark_flag = self.flags[15]
         self.lamp_exhausted_flag = self.flags[16]
@@ -125,7 +129,6 @@ class Game():
             else:
                 self.commands.append(Command(self, extracted, ea))
 
-        self.counter = 0
         self.output_text = ""
 
     def output(self, text):
@@ -335,9 +338,9 @@ class Game():
         if path is None: return
 
         with open(path, "w") as file:
-            # counters and saved rooms, which we don't support yet.
+            # counters (and saved rooms, which we don't support yet.)
             for n in range(0, 16):
-                    file.write("0 0\n")
+                file.write(f"{self.counters[n].value} 0\n")
 
             bitflags = 0
             for f in reversed(self.flags):
@@ -371,8 +374,9 @@ class Game():
         with open(path, "r") as file:
             # counters and saved rooms, which we don't support yet.
             for n in range(0, 16):
-                file.readline()
-
+                line = file.readline().split()
+                self.counters[n].value = int(line[0])
+                
             state = file.readline().split()
             bitflags = int(state[0])
             for f in self.flags:
@@ -397,7 +401,6 @@ class Game():
     def sleep(self, seconds):
         """This method waits for a number of seconds; you can override this to keep your GUI alive."""
         sleep(2)
-
        
 class Word():
     """Represents a word in the vocabulary; these are interned, so duplicate
@@ -531,3 +534,12 @@ class Item(GameObject):
 class Flag():
     def __init__(self):
         self.state = False
+
+class Counter():
+    def __init__(self):
+        self.value = 0
+
+    def swap(self, game):
+        tmp = game.counter.value
+        game.counter.value = self.value
+        self.value = tmp
