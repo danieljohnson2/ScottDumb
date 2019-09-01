@@ -228,16 +228,7 @@ class Game():
             if self.light_remaining <= 0:
                 self.lamp_exhausted_flag.state = True
 
-        self.continuing_commands = False
-
-        for l in self.occurances:
-            if self.continuing_commands:
-                if l.is_continuation():
-                    if l.is_available(): l.execute()
-                else:
-                    break
-            elif l.check_occurance():
-                l.execute()
+        self.execute_logic(self.occurances, lambda l: l.check_occurance(), halt_after_first=False)
 
     def perform_command(self, verb, noun):
         """Executes a command given. Either verb or noun can be None.
@@ -246,21 +237,8 @@ class Game():
         updates the game state, and it can raise exceptions for errors.
         """
 
-        self.continuing_commands = False
-
-        for l in self.commands:
-            if self.continuing_commands:
-                if l.is_continuation():
-                    if l.is_available(): l.execute()
-                else:
-                    break
-            elif l.check_command(verb, noun):
-                l.execute()
-                if not self.continuing_commands: return
-
-        # If this is set, we did hit some command, but then continued. We
-        # still need to avoid the default stuff below!
-        if self.continuing_commands: return
+        halted = self.execute_logic(self.commands, lambda l: l.check_command(verb, noun))
+        if halted: return
 
         if verb is None or verb == self.go_word:
             next = self.player_room.get_move(noun)
@@ -283,6 +261,31 @@ class Game():
             self.output_line("OK")
         else:
             raise ValueError("I don't understand.")
+
+    def execute_logic(self, logics, checker, halt_after_first=True):
+        """
+        This executes a list of logics, as permitted by its conditions. Logics
+        can only run if the 'checker' function given returns treu for it.
+        If half_after_first is true, this method halts after the first action.
+
+        This method returns true if it executes any action, and False if it found
+        none to execute.
+        """
+        self.continuing_commands = False
+        executed_any = False
+
+        for l in logics:
+            if self.continuing_commands:
+                if l.is_continuation():
+                    if l.is_available(): l.execute()
+                else:
+                    break
+            elif checker(l):
+                executed_any = True
+                l.execute()
+                if halt_after_first and not self.continuing_commands: break
+
+        return executed_any
 
     def check_score(self):
         treasures_found = sum(1 for t in self.treasure_room.get_items() if t.is_treasure())
