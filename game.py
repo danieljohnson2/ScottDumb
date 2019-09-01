@@ -1,4 +1,5 @@
 from execution import Occurance, Command, CommandContinuation
+from time import sleep
 
 class Game():
         """This is the root object containing the game state.
@@ -393,7 +394,11 @@ class Game():
         def get_load_game_path(self):
                 """Provides the path to the file when loading the game; can return None to cancel."""
                 return "scott.sav"
-                        
+
+        def sleep(self, seconds):
+            """This method waits for a number of seconds; you can override this to keep your GUI alive."""
+            sleep(2)
+       
 class Word():
         """Represents a word in the vocabulary; these are interned, so duplicate
         word objects do not exist.

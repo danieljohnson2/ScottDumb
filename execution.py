@@ -1,4 +1,5 @@
 from random import randint
+from time import sleep
 
 class Logic():
         """This class contains the actual opcodes to execute for the game.
@@ -202,6 +203,7 @@ class Logic():
                 if op == 84: return lambda: game.output(game.parsed_noun)
                 if op == 85: return lambda: game.output_line(game.parsed_noun)
                 if op == 86: return lambda: game.output_line()
+                if op == 88: return lambda: game.sleep(2)
                 if op >= 102: return lambda: game.output_line(game.messages[op - 50])
                 return undefined()
 
