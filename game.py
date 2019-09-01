@@ -228,10 +228,15 @@ class Game():
             if self.light_remaining <= 0:
                 self.lamp_exhausted_flag.state = True
 
-        self.continuing_logics = False
+        self.continuing_commands = False
 
         for l in self.occurances:
-            if l.check_occurance():
+            if self.continuing_commands:
+                if l.is_continuation():
+                    if l.is_available(): l.execute()
+                else:
+                    break
+            elif l.check_occurance():
                 l.execute()
 
     def perform_command(self, verb, noun):
@@ -245,8 +250,10 @@ class Game():
 
         for l in self.commands:
             if self.continuing_commands:
-                if l.check_continuation():
-                    l.execute()
+                if l.is_continuation():
+                    if l.is_available(): l.execute()
+                else:
+                    break
             elif l.check_command(verb, noun):
                 l.execute()
                 if not self.continuing_commands: return

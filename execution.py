@@ -44,8 +44,8 @@ class Logic():
         by verb and noun. Also checks availability."""
         return False
 
-    def check_continuation(self):
-        """True if this is a continuation action, and is available."""
+    def is_continuation(self):
+        """True if this is a continuation action; is_available() must be checked separately."""
         return False
 
     def execute(self):
@@ -249,6 +249,6 @@ class CommandContinuation(Logic):
     def __init__(self, game, extracted_action):
         Logic.__init__(self, game, extracted_action)
 
-    def check_continuation(self):
-        return self.is_available()
+    def is_continuation(self):
+        return True
 
