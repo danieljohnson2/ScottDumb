@@ -129,20 +129,20 @@ class Game():
             else:
                 self.commands.append(Command(self, extracted, ea))
 
-        self.output_text = ""
+        self.output_words = []
 
     def output(self, text):
         """Adds text to the output buffer, with no newline."""
-        self.output_text += text
+        self.output_words.append(OutputWord(text))
 
     def output_line(self, line = ""):
         """Adds text to the output buffer, followed by a newline."""
-        self.output_text += line + "\n"
+        self.output(line + "\n")
 
     def extract_output(self):
         """Returns the output buffer, but also resets it."""
-        out = self.output_text
-        self.output_text = ""
+        out = self.output_words
+        self.output_words = []
         return out
 
     def get_carry_item(self, word):
@@ -553,3 +553,10 @@ class Counter():
         tmp = game.counter.value
         game.counter.value = self.value
         self.value = tmp
+
+class OutputWord():
+    def __init__(self, text):
+        self.text = text
+
+    def __str__(self):
+        return self.text

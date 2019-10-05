@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from game import Game
+from game import Game, OutputWord
 from extraction import ExtractedFile
 
 from sys import argv
@@ -71,8 +71,6 @@ class GameWindow(Gtk.Window):
         with open(game_file, "r") as f:
             self.game = GuiGame(ExtractedFile(f), self)
 
-        self.current_buffer = ""
-
         self.header_bar = Gtk.HeaderBar()
         self.header_bar.set_title("Scott Dumb")
         self.header_bar.set_show_close_button(True)
@@ -122,21 +120,13 @@ class GameWindow(Gtk.Window):
         self.set_default_size(900, 500)
         self.before_turn()
 
-    def write_output(self, text, end="\n"):
-        """
-        Writes text to the transcript; by default it puts a line break after each write.
-        Text does not actually appear until you call flush_output().
-        """
-        
-        self.current_buffer += text
-
     def flush_output(self):
         """
         Displays any pending output, if any. Each output is displayed in its own
         text-view, so this will implicitly place a line break after the output.
         """
-        text = self.current_buffer.strip()
-        self.current_buffer = ""
+        buffer = self.game.extract_output()
+        text = "".join(str(x) for x in buffer).strip()
 
         if text != "":
             iter = self.script_buffer.get_end_iter()
@@ -150,7 +140,7 @@ class GameWindow(Gtk.Window):
 
     def clear_output(self):
         """Clears the output in the window, and clears the output buffer."""
-        self.current_buffer = ""
+        self.game.extract_output()
         start = self.script_buffer.get_start_iter()
         end = self.script_buffer.get_end_iter()
         self.script_buffer.delete(start, end)
@@ -189,7 +179,6 @@ class GameWindow(Gtk.Window):
 
         if not game.game_over:
             game.perform_occurances()
-            self.write_output(game.extract_output(), end = "")
             self.command_entry.grab_focus()
 
         self.flush_output()
@@ -203,7 +192,7 @@ class GameWindow(Gtk.Window):
         game = self.game
         if game.load_game():
             self.clear_output()
-            self.write_output("Game loaded.")
+            game.output_line("Game loaded.")
             self.flush_output()
             self.update_room_view()
             self.command_entry.grab_focus()
@@ -222,12 +211,13 @@ class GameWindow(Gtk.Window):
 
                 verb, noun = game.parse_command(cmd)
    
-                self.write_output("> " + cmd + "\n")
+                game.output_line("> " + cmd + "\n")
                 self.flush_output()
                 game.perform_command(verb, noun)
-                self.write_output(game.extract_output(), end = "")
+                self.flush_output()
             except Exception as e:
-                self.write_output(str(e))
+                game.output(str(e))
+                self.flush_output()
 
         self.before_turn()
             
