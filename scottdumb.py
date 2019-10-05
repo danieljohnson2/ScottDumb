@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from game import Game, OutputWord
+from game import Game
 from extraction import ExtractedFile
 
 from sys import argv
@@ -128,15 +128,22 @@ class GameWindow(Gtk.Window):
         buffer = self.game.extract_output()
 
         if len(buffer) > 0:
-            buffer[0] = buffer[0].lstrip()
-            buffer[-1] = buffer[-1].rstrip()
-
             iter = self.script_buffer.get_end_iter()
             if self.script_buffer.get_char_count() > 0:
                 self.script_buffer.insert(iter, "\n")
 
+            while len(buffer) > 0 and buffer[0].is_newline():
+                del buffer[0]
+
+            while len(buffer) > 0 and buffer[-1].is_newline():
+                del buffer[-1]
+
+            word_index = 0
             for word in buffer:
+                if word_index > 0: self.script_buffer.insert(iter, " ")
                 self.script_buffer.insert(iter, str(word))
+                if word.is_newline(): word_index = 0
+                else: word_index += 1
 
             self.scroll_to_bottom()
 

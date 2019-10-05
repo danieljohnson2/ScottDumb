@@ -133,11 +133,13 @@ class Game():
 
     def output(self, text):
         """Adds text to the output buffer, with no newline."""
-        self.output_words.append(OutputWord(text))
+        for part in text.split():
+            self.output_words.append(OutputWord(part))
 
     def output_line(self, line = ""):
         """Adds text to the output buffer, followed by a newline."""
-        self.output(line + "\n")
+        self.output(line)
+        self.output_words.append(OutputWord("\n"))
 
     def extract_output(self):
         """Returns the output buffer, but also resets it."""
@@ -558,8 +560,7 @@ class OutputWord():
     def __init__(self, text):
         self.text = text
 
-    def lstrip(self): return OutputWord(self.text.lstrip())
-    def rstrip(self): return OutputWord(self.text.rstrip())
+    def is_newline(self): return self.text == "\n"
 
     def __str__(self):
         return self.text
