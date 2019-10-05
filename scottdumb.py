@@ -10,6 +10,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
+from gi.repository import Pango
 
 def make_filter(name, pattern):
     """Builds a GTK file-filter conveniently."""
@@ -85,12 +86,16 @@ class GameWindow(Gtk.Window):
 
         self.set_titlebar(self.header_bar)
 
+        self.underline_tag = Gtk.TextTag()
+        self.underline_tag.set_property("underline", Pango.Underline.SINGLE)
+        
         self.room_buffer = Gtk.TextBuffer()
         self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
         self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
 
         self.script_buffer = Gtk.TextBuffer()
+        self.script_buffer.get_tag_table().add(self.underline_tag)
         self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
         self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
 
@@ -141,7 +146,12 @@ class GameWindow(Gtk.Window):
             word_index = 0
             for word in buffer:
                 if word_index > 0: self.script_buffer.insert(iter, " ")
-                self.script_buffer.insert(iter, str(word))
+
+                if word.is_underlined:
+                    self.script_buffer.insert_with_tags(iter, str(word), self.underline_tag)
+                else:
+                    self.script_buffer.insert(iter, str(word))
+
                 if word.is_newline(): word_index = 0
                 else: word_index += 1
 

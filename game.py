@@ -134,12 +134,16 @@ class Game():
     def output(self, text):
         """Adds text to the output buffer, with no newline."""
         for part in text.split():
-            self.output_words.append(OutputWord(part))
+            self.output_word(OutputWord(part))
 
     def output_line(self, line = ""):
         """Adds text to the output buffer, followed by a newline."""
         self.output(line)
-        self.output_words.append(OutputWord("\n"))
+        self.output_word(OutputWord("\n"))
+
+    def output_word(self, word):
+        """Adds a single OutputWord to the output buffer."""
+        self.output_words.append(word)
 
     def extract_output(self):
         """Returns the output buffer, but also resets it."""
@@ -297,15 +301,17 @@ class Game():
         if score == 100 and self.player_room == self.treasure_room:
             self.game_over = True
 
-    def get_inventory_text(self):
+    def output_inventory_text(self):
         """Returns the text to display when the user takes inventory."""
-        text = "I am carrying the following:\n"
-        items = [i.description for i in self.inventory.get_items()]
+        self.output("I am carrying the following:")
+        items = self.inventory.get_items()
         if len(items) > 0:
-            text += " ".join(items)
+            self.output_line()
+            for item in items:
+                self.output_word(OutputWord(item.description, is_underlined = True))
         else:
-            text += " Nothing at all!"
-        return text
+            self.output("Nothing at all!")
+        self.output_line()
 
     def move_player(self, new_room):
         """Moves the player to a new room."""
@@ -557,8 +563,9 @@ class Counter():
         self.value = tmp
 
 class OutputWord():
-    def __init__(self, text):
+    def __init__(self, text, is_underlined = False):
         self.text = text
+        self.is_underlined = is_underlined
 
     def is_newline(self): return self.text == "\n"
 

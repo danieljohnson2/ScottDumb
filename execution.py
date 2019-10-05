@@ -169,7 +169,7 @@ class Logic():
         if op == 63: return game_over
         if op == 64 or op == 76: return describe_room
         if op == 65: return check_score
-        if op == 66: return lambda: game.output_line(game.get_inventory_text())
+        if op == 66: return lambda: game.output_inventory_text()
         if op == 67:
             flag = game.flags[0]
             return set_flag
