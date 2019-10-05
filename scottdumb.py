@@ -126,32 +126,35 @@ class GameWindow(Gtk.Window):
         Displays any pending output, if any. Each output is displayed in its own
         text-view, so this will implicitly place a line break after the output.
         """
-        buffer = self.game.extract_output()
+        words = self.game.extract_output()
 
-        if len(buffer) > 0:
+        if len(words) > 0:
             iter = self.script_buffer.get_end_iter()
             if self.script_buffer.get_char_count() > 0:
                 self.script_buffer.insert(iter, "\n")
-
-            while len(buffer) > 0 and buffer[0].is_newline():
-                del buffer[0]
-
-            while len(buffer) > 0 and buffer[-1].is_newline():
-                del buffer[-1]
-
-            word_index = 0
-            for word in buffer:
-                if word_index > 0: self.script_buffer.insert(iter, " ")
-                tag = self.get_tag(word, self.script_buffer)
-                if tag is None:
-                    self.script_buffer.insert(iter, str(word))
-                else:
-                    self.script_buffer.insert_with_tags(iter, str(word), tag)
-                
-                if word.is_newline(): word_index = 0
-                else: word_index += 1
-
+            self.append_words(words, self.script_buffer)
             self.scroll_to_bottom()
+
+    def append_words(self, words, buffer):
+        words = list(words)
+        while len(words) > 0 and words[0].is_newline():
+            del words[0]
+
+        while len(words) > 0 and words[-1].is_newline():
+            del words[-1]
+
+        iter = buffer.get_end_iter()
+        word_index = 0
+        for word in words:
+            if word_index > 0: buffer.insert(iter, " ")
+            tag = self.get_tag(word, buffer)
+            if tag is None:
+                buffer.insert(iter, str(word))
+            else:
+                buffer.insert_with_tags(iter, str(word), tag)
+            
+            if word.is_newline(): word_index = 0
+            else: word_index += 1
 
     def get_tag(self, word, buffer):
         if word.is_plain(): return None
@@ -165,12 +168,15 @@ class GameWindow(Gtk.Window):
             word.tags[buffer] = tag
             return tag;
 
+    def clear_buffer(self, buffer):
+        start = buffer.get_start_iter()
+        end = buffer.get_end_iter()
+        buffer.delete(start, end)
+
     def clear_output(self):
         """Clears the output in the window, and clears the output buffer."""
         self.game.extract_output()
-        start = self.script_buffer.get_start_iter()
-        end = self.script_buffer.get_end_iter()
-        self.script_buffer.delete(start, end)
+        self.clear_buffer(self.script_buffer)
 
     def scroll_to_bottom(self):
         """Scrolls the output window as far down as possible."""
@@ -190,8 +196,9 @@ class GameWindow(Gtk.Window):
         """
         game = self.game
         if game.wants_room_update or game.needs_room_update:
-            text = game.player_room.get_look_text()
-            self.room_buffer.set_text(text)
+            words = game.player_room.get_look_words()
+            self.clear_buffer(self.room_buffer)
+            self.append_words(words, self.room_buffer)
             game.needs_room_update = False
             game.wants_room_update = False
 
@@ -238,7 +245,7 @@ class GameWindow(Gtk.Window):
 
                 verb, noun = game.parse_command(cmd)
    
-                game.output_line("> " + cmd + "\n")
+                game.output_line("> " + cmd)
                 self.flush_output()
                 game.perform_command(verb, noun)
                 self.flush_output()

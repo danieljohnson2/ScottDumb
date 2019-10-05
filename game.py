@@ -505,33 +505,40 @@ class Room(GameObject):
         try: return choices[word]
         except KeyError: raise WordError(word, f"'{word}' is not a direction.")
 
-    def get_look_text(self):
+    def get_look_words(self):
         """The text to describe the room and everything in it."""
 
         if self.game.dark_flag.state and self.game.lamp_item.room != self.game.inventory:
-            return "It is too dark to see!"
+            return OutputWord("It is too dark to see!")
 
-        text = self.description                
+        words = [OutputWord(self.description)]
 
-        items = []
-        for item in self.get_items():
-            items.append(item.description + ".")
-
+        items = self.get_items()
         if len(items) > 0:
-            text += "\n\nVisible items: " + " ".join(items)
+            words.append(OutputWord("\n"))
+            words.append(OutputWord("\n"))
+            words.append(OutputWord("Visible items:"))
+
+            for item in items:
+                words.append(item.room_word)
 
         exits = []
-        if self.north: exits.append("North")
-        if self.south: exits.append("South")
-        if self.east: exits.append("East")
-        if self.west: exits.append("West")
-        if self.up: exits.append("Up")
-        if self.down: exits.append("Down")
+        if self.north: exits.append(OutputWord("North"))
+        if self.south: exits.append(OutputWord("South"))
+        if self.east: exits.append(OutputWord("East"))
+        if self.west: exits.append(OutputWord("West"))
+        if self.up: exits.append(OutputWord("Up"))
+        if self.down: exits.append(OutputWord("Down"))
 
         if len(exits) > 0:
-            text += "\n\nObvious exits: " + " ".join(exits)
+            words.append(OutputWord("\n"))
+            words.append(OutputWord("\n"))
+            words.append(OutputWord("Obvious exits:"))
 
-        return text
+            for exit in exits:
+                words.append(exit)
+
+        return words
 
 class Item(GameObject):
         """Represents an item that can be moved from room to room.
@@ -540,6 +547,7 @@ class Item(GameObject):
         starting_room - the room the item started in
         carry_word - word used to get or drop the item;
                      None if the item can't be taken.
+        room_word - ouput word output for the room description
         inventory_word - output word output for the inventory
         """
 
@@ -547,7 +555,9 @@ class Item(GameObject):
             GameObject.__init__(self, game, extracted_item.description)
             self.carry_word = game.get_noun(extracted_item.carry_word)
             self.room = None
-            self.inventory_word = OutputWord(self.description, self)
+            output_word = OutputWord(self.description, self)
+            self.room_word = output_word
+            self.inventory_word = output_word
 
         def is_treasure(self): return self.description.startswith("*")
 
