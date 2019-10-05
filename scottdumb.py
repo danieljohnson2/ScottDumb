@@ -126,15 +126,17 @@ class GameWindow(Gtk.Window):
         text-view, so this will implicitly place a line break after the output.
         """
         buffer = self.game.extract_output()
-        text = "".join(str(x) for x in buffer).strip()
 
-        if text != "":
+        if len(buffer) > 0:
+            buffer[0] = buffer[0].lstrip()
+            buffer[-1] = buffer[-1].rstrip()
+
             iter = self.script_buffer.get_end_iter()
-
             if self.script_buffer.get_char_count() > 0:
-                self.script_buffer.insert(iter, "\n"+text)
-            else:
-                self.script_buffer.insert(iter, text)
+                self.script_buffer.insert(iter, "\n")
+
+            for word in buffer:
+                self.script_buffer.insert(iter, str(word))
 
             self.scroll_to_bottom()
 

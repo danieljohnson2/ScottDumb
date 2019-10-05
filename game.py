@@ -558,5 +558,8 @@ class OutputWord():
     def __init__(self, text):
         self.text = text
 
+    def lstrip(self): return OutputWord(self.text.lstrip())
+    def rstrip(self): return OutputWord(self.text.rstrip())
+
     def __str__(self):
         return self.text
