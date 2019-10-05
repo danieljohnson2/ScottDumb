@@ -308,7 +308,7 @@ class Game():
         if len(items) > 0:
             self.output_line()
             for item in items:
-                self.output_word(OutputWord(item.description, is_underlined = True))
+                self.output_word(item.inventory_word)
         else:
             self.output("Nothing at all!")
         self.output_line()
@@ -540,12 +540,14 @@ class Item(GameObject):
         starting_room - the room the item started in
         carry_word - word used to get or drop the item;
                      None if the item can't be taken.
+        inventory_word - output word output for the inventory
         """
 
         def __init__(self, game, extracted_item):
             GameObject.__init__(self, game, extracted_item.description)
             self.carry_word = game.get_noun(extracted_item.carry_word)
             self.room = None
+            self.inventory_word = OutputWord(self.description, self)
 
         def is_treasure(self): return self.description.startswith("*")
 
@@ -563,10 +565,12 @@ class Counter():
         self.value = tmp
 
 class OutputWord():
-    def __init__(self, text, is_underlined = False):
+    def __init__(self, text, item = None):
         self.text = text
-        self.is_underlined = is_underlined
+        self.item = item
+        self.tags = {}
 
+    def is_plain(self): return self.item is None
     def is_newline(self): return self.text == "\n"
 
     def __str__(self):

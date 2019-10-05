@@ -86,16 +86,12 @@ class GameWindow(Gtk.Window):
 
         self.set_titlebar(self.header_bar)
 
-        self.underline_tag = Gtk.TextTag()
-        self.underline_tag.set_property("underline", Pango.Underline.SINGLE)
-        
         self.room_buffer = Gtk.TextBuffer()
         self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
         self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
 
         self.script_buffer = Gtk.TextBuffer()
-        self.script_buffer.get_tag_table().add(self.underline_tag)
         self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
         self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
 
@@ -146,16 +142,28 @@ class GameWindow(Gtk.Window):
             word_index = 0
             for word in buffer:
                 if word_index > 0: self.script_buffer.insert(iter, " ")
-
-                if word.is_underlined:
-                    self.script_buffer.insert_with_tags(iter, str(word), self.underline_tag)
-                else:
+                tag = self.get_tag(word, self.script_buffer)
+                if tag is None:
                     self.script_buffer.insert(iter, str(word))
-
+                else:
+                    self.script_buffer.insert_with_tags(iter, str(word), tag)
+                
                 if word.is_newline(): word_index = 0
                 else: word_index += 1
 
             self.scroll_to_bottom()
+
+    def get_tag(self, word, buffer):
+        if word.is_plain(): return None
+
+        if buffer in word.tags:
+            return word.tags[buffer]
+        else:
+            tag = Gtk.TextTag()
+            tag.set_property("underline", Pango.Underline.SINGLE)
+            buffer.get_tag_table().add(tag)
+            word.tags[buffer] = tag
+            return tag;
 
     def clear_output(self):
         """Clears the output in the window, and clears the output buffer."""
