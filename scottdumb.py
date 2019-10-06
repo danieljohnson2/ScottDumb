@@ -229,7 +229,10 @@ class GameWindow(Gtk.Window):
         found, i = text_view.get_iter_at_location(x, y)
         if found:
             for t in i.get_tags():
-                print(self.words_by_tag[t])
+                word = self.words_by_tag[t]
+                if word.item.carry_word is not None:
+                    self.perform_command("GET " + str(word.item.carry_word))
+                    text_view.stop_emission("button-press-event")
 
     def on_load_game(self, data):
         """Handles the load game button."""
@@ -245,25 +248,25 @@ class GameWindow(Gtk.Window):
         """Handles the save game button."""
         self.game.save_game()
 
+    def perform_command(self, cmd):
+        game = self.game
+        try:
+            self.command_entry.set_text("")
+            verb, noun = game.parse_command(cmd)
+            game.output_line("> " + cmd)
+            self.flush_output()
+            game.perform_command(verb, noun)
+            self.flush_output()
+        except Exception as e:
+            game.output(str(e))
+            self.flush_output()
+        self.before_turn()
+        
     def on_command_activate(self, data):
         """Handles a user-enterd command when the user hits enter."""
-        game = self.game
-        if not game.game_over:
-            try:
-                cmd = self.command_entry.get_text()
-                self.command_entry.set_text("")
-
-                verb, noun = game.parse_command(cmd)
-   
-                game.output_line("> " + cmd)
-                self.flush_output()
-                game.perform_command(verb, noun)
-                self.flush_output()
-            except Exception as e:
-                game.output(str(e))
-                self.flush_output()
-
-        self.before_turn()
+        if not self.game.game_over:
+            cmd = self.command_entry.get_text()
+            self.perform_command(cmd)
             
 seed()
 win = GameWindow(argv[1])
