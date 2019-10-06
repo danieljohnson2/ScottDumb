@@ -90,6 +90,7 @@ class GameWindow(Gtk.Window):
         self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
         self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
+        self.room_view.connect("button-press-event", self.on_button_press_event)
 
         self.script_buffer = Gtk.TextBuffer()
         self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
@@ -118,6 +119,7 @@ class GameWindow(Gtk.Window):
 
         self.add(vBox)
 
+        self.words_by_tag = { }
         self.set_default_size(900, 500)
         self.before_turn()
 
@@ -165,6 +167,7 @@ class GameWindow(Gtk.Window):
             tag = Gtk.TextTag()
             tag.set_property("underline", Pango.Underline.SINGLE)
             buffer.get_tag_table().add(tag)
+            self.words_by_tag[tag] = word
             word.tags[buffer] = tag
             return tag;
 
@@ -220,6 +223,13 @@ class GameWindow(Gtk.Window):
 
     def on_room_view_size_allocate(self, allocation, data):
         self.scroll_to_bottom()
+
+    def on_button_press_event(self, text_view, event):
+        x, y = text_view.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+        found, i = text_view.get_iter_at_location(x, y)
+        if found:
+            for t in i.get_tags():
+                print(self.words_by_tag[t])
 
     def on_load_game(self, data):
         """Handles the load game button."""
