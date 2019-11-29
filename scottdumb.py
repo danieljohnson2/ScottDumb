@@ -108,14 +108,14 @@ class GameWindow(Gtk.Window):
         self.command_entry = Gtk.Entry()
         self.command_entry.connect("activate", self.on_command_activate)
         
-        inventory_button = Gtk.Button(label="_Inventory", use_underline=True)
-        inventory_button.connect("clicked", self.on_inventory)
-        self.command_box.pack_end(inventory_button, False, False, 0)
-
         score_button = Gtk.Button(label="_Score", use_underline=True)
         score_button.connect("clicked", self.on_score)
         score_button.set_margin_end(5)
         self.command_box.pack_end(score_button, False, False, 0)
+
+        inventory_button = Gtk.Button(label="_Inventory", use_underline=True)
+        inventory_button.connect("clicked", self.on_inventory)
+        self.command_box.pack_end(inventory_button, False, False, 0)
 
         self.command_box.pack_start(command_label, False, False, 0)
         self.command_box.pack_end(self.command_entry, True, True, 0)
