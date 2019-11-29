@@ -101,17 +101,22 @@ class GameWindow(Gtk.Window):
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
        
-        cmdBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.command_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         
         command_label = Gtk.Label(label=">")
         command_label.set_margin_start(5)
         self.command_entry = Gtk.Entry()
         self.command_entry.connect("activate", self.on_command_activate)
-        self.command_entry.set_margin_end(5)
-        cmdBox.pack_start(command_label, False, False, 0)
-        cmdBox.pack_end(self.command_entry, True, True, 0)
+        
+        inventory_button = Gtk.Button(label="_Inventory", use_underline=True)
+        inventory_button.connect("clicked", self.on_inventory)
+        inventory_button.set_margin_end(5)
+        self.command_box.pack_end(inventory_button, False, False, 0)
 
-        vBox.pack_end(cmdBox, False, False, 5)
+        self.command_box.pack_start(command_label, False, False, 0)
+        self.command_box.pack_end(self.command_entry, True, True, 0)
+
+        vBox.pack_end(self.command_box, False, False, 5)
 
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -206,7 +211,7 @@ class GameWindow(Gtk.Window):
             game.needs_room_update = False
             game.wants_room_update = False
 
-        self.command_entry.set_sensitive(not game.game_over)
+        self.command_box.set_sensitive(not game.game_over)
 
     def before_turn(self):
         """
@@ -270,10 +275,15 @@ class GameWindow(Gtk.Window):
         self.before_turn()
         
     def on_command_activate(self, data):
-        """Handles a user-enterd command when the user hits enter."""
+        """Handles a user-entered command when the user hits enter."""
         if not self.game.game_over:
             cmd = self.command_entry.get_text()
             self.perform_command(cmd)
+
+    def on_inventory(self, data):
+        """Generates the inventory command"""
+        if not self.game.game_over:
+            self.perform_command("INVENTORY")
             
 seed()
 win = GameWindow(argv[1])
