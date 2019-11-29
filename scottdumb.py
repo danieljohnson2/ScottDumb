@@ -231,11 +231,14 @@ class GameWindow(Gtk.Window):
         if found:
             for t in i.get_tags():
                 word = self.words_by_tag[t]
-                if word.item.carry_word is not None:
+                if word.item is not None and word.item.carry_word is not None:
                     if word.item.room == self.game.inventory:
                         self.perform_command("DROP " + str(word.item.carry_word))
                     else:
                         self.perform_command("GET " + str(word.item.carry_word))
+                    text_view.stop_emission("button-press-event")
+                elif word.direction is not None:
+                    self.perform_command(str(word))
                     text_view.stop_emission("button-press-event")
 
     def on_load_game(self, data):

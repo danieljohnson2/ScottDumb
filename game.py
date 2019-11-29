@@ -523,12 +523,12 @@ class Room(GameObject):
                 words.append(item.room_word)
 
         exits = []
-        if self.north: exits.append(OutputWord("North"))
-        if self.south: exits.append(OutputWord("South"))
-        if self.east: exits.append(OutputWord("East"))
-        if self.west: exits.append(OutputWord("West"))
-        if self.up: exits.append(OutputWord("Up"))
-        if self.down: exits.append(OutputWord("Down"))
+        if self.north: exits.append(OutputWord("North", direction=self.north))
+        if self.south: exits.append(OutputWord("South", direction=self.south))
+        if self.east: exits.append(OutputWord("East", direction=self.east))
+        if self.west: exits.append(OutputWord("West", direction=self.west))
+        if self.up: exits.append(OutputWord("Up", direction=self.up))
+        if self.down: exits.append(OutputWord("Down", direction=self.down))
 
         if len(exits) > 0:
             words.append(OutputWord("\n"))
@@ -555,7 +555,7 @@ class Item(GameObject):
             GameObject.__init__(self, game, extracted_item.description)
             self.carry_word = game.get_noun(extracted_item.carry_word)
             self.room = None
-            output_word = OutputWord(self.description, self)
+            output_word = OutputWord(self.description, item=self)
             self.room_word = output_word
             self.inventory_word = output_word
 
@@ -575,12 +575,18 @@ class Counter():
         self.value = tmp
 
 class OutputWord():
-    def __init__(self, text, item = None):
+    def __init__(self, text, item = None, direction = None):
         self.text = text
         self.item = item
+        self.direction = direction
         self.tags = {}
 
-    def is_plain(self): return self.item is None or self.item.carry_word is None
+    def is_plain(self): return not self.is_active()
+    def is_active(self):
+        if self.direction is not None: return True;
+        if self.item is not None and self.item.carry_word is not None: return True
+        return False
+        
     def is_newline(self): return self.text == "\n"
 
     def __str__(self):
