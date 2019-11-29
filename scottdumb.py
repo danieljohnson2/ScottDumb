@@ -110,8 +110,12 @@ class GameWindow(Gtk.Window):
         
         inventory_button = Gtk.Button(label="_Inventory", use_underline=True)
         inventory_button.connect("clicked", self.on_inventory)
-        inventory_button.set_margin_end(5)
         self.command_box.pack_end(inventory_button, False, False, 0)
+
+        score_button = Gtk.Button(label="_Score", use_underline=True)
+        score_button.connect("clicked", self.on_score)
+        score_button.set_margin_end(5)
+        self.command_box.pack_end(score_button, False, False, 0)
 
         self.command_box.pack_start(command_label, False, False, 0)
         self.command_box.pack_end(self.command_entry, True, True, 0)
@@ -283,7 +287,12 @@ class GameWindow(Gtk.Window):
     def on_inventory(self, data):
         """Generates the inventory command"""
         if not self.game.game_over:
-            self.perform_command("INVENTORY")
+            self.perform_command("INVENTORY")\
+
+    def on_score(self, data):
+        """Generates the score command"""
+        if not self.game.game_over:
+            self.perform_command("SCORE")
             
 seed()
 win = GameWindow(argv[1])
