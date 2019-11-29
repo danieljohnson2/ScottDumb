@@ -95,6 +95,7 @@ class GameWindow(Gtk.Window):
         self.script_buffer = Gtk.TextBuffer()
         self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
         self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        self.script_view.connect("button-press-event", self.on_button_press_event)
 
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
@@ -231,7 +232,10 @@ class GameWindow(Gtk.Window):
             for t in i.get_tags():
                 word = self.words_by_tag[t]
                 if word.item.carry_word is not None:
-                    self.perform_command("GET " + str(word.item.carry_word))
+                    if word.item.room == self.game.inventory:
+                        self.perform_command("DROP " + str(word.item.carry_word))
+                    else:
+                        self.perform_command("GET " + str(word.item.carry_word))
                     text_view.stop_emission("button-press-event")
 
     def on_load_game(self, data):

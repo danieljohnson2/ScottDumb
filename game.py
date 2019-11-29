@@ -580,7 +580,7 @@ class OutputWord():
         self.item = item
         self.tags = {}
 
-    def is_plain(self): return self.item is None
+    def is_plain(self): return self.item is None or self.item.carry_word is None
     def is_newline(self): return self.text == "\n"
 
     def __str__(self):
