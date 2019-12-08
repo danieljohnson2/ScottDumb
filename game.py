@@ -581,11 +581,22 @@ class OutputWord():
         self.direction = direction
         self.tags = {}
 
-    def is_plain(self): return not self.is_active()
-    def is_active(self):
-        if self.direction is not None: return True;
-        if self.item is not None and self.item.carry_word is not None: return True
-        return False
+    def is_plain(self, game): return len(self.active_commands(game)) == 0
+    
+    def active_commands(self, game):
+        """
+        Returns a list of commands this word can trigger, which
+        may be empty for a 'plain' word.
+        """
+        if self.item is not None:
+            if self.item.room == game.inventory:
+                return ["DROP " + str(self.item.carry_word)]
+            else:
+                return ["GET " + str(self.item.carry_word)]
+        elif self.direction is not None:
+            return [str(self)]
+        else:
+            return []
         
     def is_newline(self): return self.text == "\n"
 
