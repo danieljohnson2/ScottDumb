@@ -588,7 +588,7 @@ class OutputWord():
         Returns a list of commands this word can trigger, which
         may be empty for a 'plain' word.
         """
-        if self.item is not None:
+        if self.item is not None and self.item.carry_word is not None:
             if self.item.room == game.inventory:
                 return ["DROP " + str(self.item.carry_word)]
             else:

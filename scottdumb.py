@@ -242,8 +242,18 @@ class GameWindow(Gtk.Window):
                 word = self.words_by_tag[t]
                 commands = word.active_commands(self.game)
                 if len(commands) > 0:
-                    self.perform_command(commands[0])
-                    text_view.stop_emission("button-press-event")
+                    menu = Gtk.Menu()
+                    menu.attach_to_widget(text_view)
+                    for cmd in commands:
+                        item = Gtk.MenuItem(label=cmd)
+                        menu.append(item)
+                    
+                        def on_menu_item_activate(m):
+                            self.perform_command(cmd)
+                        item.connect("activate", on_menu_item_activate)
+                    menu.show_all()
+                    menu.popup_at_pointer(event)
+                    text_view.stop_emission_by_name("button-press-event")
 
     def on_load_game(self, data):
         """Handles the load game button."""
@@ -294,4 +304,3 @@ win = GameWindow(argv[1])
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()
-
