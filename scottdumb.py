@@ -248,9 +248,9 @@ class GameWindow(Gtk.Window):
                         item = Gtk.MenuItem(label=cmd)
                         menu.append(item)
                     
-                        def on_menu_item_activate(m):
-                            self.perform_command(cmd)
-                        item.connect("activate", on_menu_item_activate)
+                        def on_menu_item_activate(m, c):
+                            self.perform_command(c)
+                        item.connect("activate", on_menu_item_activate, cmd)
                     menu.show_all()
                     menu.popup_at_pointer(event)
                     text_view.stop_emission_by_name("button-press-event")

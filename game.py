@@ -589,10 +589,20 @@ class OutputWord():
         may be empty for a 'plain' word.
         """
         if self.item is not None and self.item.carry_word is not None:
+            carry_word = self.item.carry_word
+            commands = []
             if self.item.room == game.inventory:
-                return ["DROP " + str(self.item.carry_word)]
+                commands.append("DROP " + str(carry_word))
             else:
-                return ["GET " + str(self.item.carry_word)]
+                commands.append("GET " + str(carry_word))
+                
+            for cmd in game.commands:
+                if cmd.check_available_command(carry_word):
+                    command = str(cmd.verb) + " " + str(cmd.noun)
+                    if command not in commands:
+                        commands.append(command)
+                    
+            return commands
         elif self.direction is not None:
             return [str(self)]
         else:

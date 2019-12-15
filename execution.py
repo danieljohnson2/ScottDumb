@@ -5,7 +5,7 @@ class Logic():
     """This class contains the actual opcodes to execute for the game.
 
     Subclasses override methods to control when this can execute, but the
-    actual execute is all here.
+    actual execution is all here.
     """
     def __init__(self, game, extracted_action):
         self.game = game
@@ -42,6 +42,11 @@ class Logic():
     def check_command(self, verb, noun):
         """True if this is a command to handle the user command indicated
         by verb and noun. Also checks availability."""
+        return False
+
+    def check_available_command(self, noun):
+        """True if this is a command to handle the user command indicated
+        by noun only. Also checks availability."""
         return False
 
     def is_continuation(self):
@@ -92,8 +97,8 @@ class Logic():
         an action opcode.
 
         value_source is not an opcode argument, but a function that extracts the
-        next one from the argument carries (which are among the condit\ions of all
-        things. It can be called repeatedly for multiple arguments.
+        next one from the argument carries (which are among the conditions of all
+        things.) It can be called repeatedly for multiple arguments.
         """
 
         game = self.game
@@ -241,6 +246,9 @@ class Command(Logic):
                 return self.is_available()
         return False
 
+    def check_available_command(self, noun):
+        return self.noun == noun and self.is_available()
+        
 class CommandContinuation(Logic):
     """These logics are weird. They are continuations of commands which
     they follow. They run if a command executes the continue opcode, and
