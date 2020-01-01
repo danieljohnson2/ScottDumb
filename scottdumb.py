@@ -97,6 +97,12 @@ class GameWindow(Gtk.Window):
         self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.script_view.connect("button-press-event", self.on_button_press_event)
 
+        self.inventory_buffer = Gtk.TextBuffer()
+        self.inventory_view = Gtk.TextView(buffer=self.inventory_buffer,
+            editable=False, width_request=300)
+        self.inventory_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        self.inventory_view.connect("button-press-event", self.on_button_press_event)
+        
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
@@ -113,10 +119,6 @@ class GameWindow(Gtk.Window):
         score_button.set_margin_end(5)
         self.command_box.pack_end(score_button, False, False, 0)
 
-        inventory_button = Gtk.Button(label="_Inventory", use_underline=True)
-        inventory_button.connect("clicked", self.on_inventory)
-        self.command_box.pack_end(inventory_button, False, False, 0)
-
         self.command_box.pack_start(command_label, False, False, 0)
         self.command_box.pack_end(self.command_entry, True, True, 0)
 
@@ -125,7 +127,12 @@ class GameWindow(Gtk.Window):
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroller.add(self.script_view)
-        vBox.pack_end(self.scroller, True, True, 0)
+        
+        hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        hBox.pack_start(self.scroller, True, True, 0)
+        hBox.pack_start(Gtk.Separator(), False, False, 0)
+        hBox.pack_start(self.inventory_view, False, False, 0)
+        vBox.pack_end(hBox, True, True, 0)
 
         self.add(vBox)
 
@@ -216,7 +223,13 @@ class GameWindow(Gtk.Window):
             game.wants_room_update = False
 
         self.command_box.set_sensitive(not game.game_over)
+        self.update_inventory_view()
 
+    def update_inventory_view(self):
+        words = self.game.get_inventory_words()
+        self.clear_buffer(self.inventory_buffer)
+        self.append_words(words, self.inventory_buffer)
+        
     def before_turn(self):
         """
         Performs game logic that should happen before user commands are accepted.
@@ -288,11 +301,6 @@ class GameWindow(Gtk.Window):
         if not self.game.game_over:
             cmd = self.command_entry.get_text()
             self.perform_command(cmd)
-
-    def on_inventory(self, data):
-        """Generates the inventory command"""
-        if not self.game.game_over:
-            self.perform_command("INVENTORY")\
 
     def on_score(self, data):
         """Generates the score command"""

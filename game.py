@@ -301,18 +301,23 @@ class Game():
         if score == 100 and self.player_room == self.treasure_room:
             self.game_over = True
 
-    def output_inventory_text(self):
+    def get_inventory_words(self):
         """Returns the text to display when the user takes inventory."""
-        self.output("I am carrying the following:")
+        words = [OutputWord(s) for s in "I am carrying the following:".split()]
         items = self.inventory.get_items()
         if len(items) > 0:
-            self.output_line()
+            words.append(OutputWord("\n"))
             for item in items:
-                self.output_word(item.inventory_word)
+                words.append(item.inventory_word)
         else:
-            self.output("Nothing at all!")
+            words.append(OutputWord("Nothing at all!"))
+        return words
+        
+    def output_inventory_text(self):
+        for word in self.get_inventory_words():
+            self.output_word(word)
         self.output_line()
-
+            
     def move_player(self, new_room):
         """Moves the player to a new room."""
         self.player_room = new_room
