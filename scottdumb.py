@@ -253,11 +253,13 @@ class GameWindow(Gtk.Window):
     def on_motion_notify_event(self, text_view, event):
         x, y = text_view.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = text_view.get_iter_at_location(x, y)
-        w = text_view.get_window(Gtk.TextWindowType.TEXT)
         if found and len(i.get_tags()) > 0:
-            cursor = Gdk.Cursor(Gdk.CursorType.ARROW)
+            cursor_name = "pointer"
         else:
-            cursor = Gdk.Cursor(Gdk.CursorType.XTERM)
+            cursor_name = "text"
+
+        w = text_view.get_window(Gtk.TextWindowType.TEXT)
+        cursor = Gdk.Cursor.new_from_name(w.get_display(), cursor_name)
         w.set_cursor(cursor)
             
     def on_button_press_event(self, text_view, event):
