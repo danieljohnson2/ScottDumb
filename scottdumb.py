@@ -160,7 +160,7 @@ class GameWindow(Gtk.Window):
         game = self.game
         if game.wants_room_update or game.needs_room_update:
             words = game.player_room.get_look_words()
-            self.room_view.clear_buffer()
+            self.room_view.clear()
             self.room_view.append_words(words)
             game.needs_room_update = False
             game.wants_room_update = False
@@ -170,7 +170,7 @@ class GameWindow(Gtk.Window):
 
     def update_inventory_view(self):
         words = self.game.get_inventory_words()
-        self.inventory_view.clear_buffer()
+        self.inventory_view.clear()
         self.inventory_view.append_words(words)
         
     def before_turn(self):
@@ -195,7 +195,7 @@ class GameWindow(Gtk.Window):
         game = self.game
         if game.load_game():
             game.extract_output()
-            self.script_view.clear_buffer()
+            self.script_view.clear()
             game.output_line("Game loaded.")
             self.flush_output()
             self.update_room_view()

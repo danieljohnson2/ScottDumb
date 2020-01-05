@@ -29,6 +29,20 @@ class WordyTextView(Gtk.TextView):
             self.buffer.insert(iter, "\n")
 
     def append_words(self, words):
+
+        def get_tag(word):
+            if word.is_plain(self.game): return None
+
+            if self.buffer in word.tags:
+                return word.tags[self.buffer]
+            else:
+                tag = Gtk.TextTag()
+                tag.set_property("underline", Pango.Underline.SINGLE)
+                self.buffer.get_tag_table().add(tag)
+                self.words_by_tag[tag] = word
+                word.tags[self.buffer] = tag
+                return tag
+                
         words = list(words)
         while len(words) > 0 and words[0].is_newline():
             del words[0]
@@ -40,7 +54,7 @@ class WordyTextView(Gtk.TextView):
         word_index = 0
         for word in words:
             if word_index > 0: self.buffer.insert(iter, " ")
-            tag = self.get_tag(word)
+            tag = get_tag(word)
             if tag is None:
                 self.buffer.insert(iter, str(word))
             else:
@@ -49,20 +63,7 @@ class WordyTextView(Gtk.TextView):
             if word.is_newline(): word_index = 0
             else: word_index += 1
 
-    def get_tag(self, word):
-        if word.is_plain(self.game): return None
-
-        if self.buffer in word.tags:
-            return word.tags[self.buffer]
-        else:
-            tag = Gtk.TextTag()
-            tag.set_property("underline", Pango.Underline.SINGLE)
-            self.buffer.get_tag_table().add(tag)
-            self.words_by_tag[tag] = word
-            word.tags[self.buffer] = tag
-            return tag;
-
-    def clear_buffer(self):
+    def clear(self):
         start = self.buffer.get_start_iter()
         end = self.buffer.get_end_iter()
         self.buffer.delete(start, end)
@@ -80,6 +81,16 @@ class WordyTextView(Gtk.TextView):
         w.set_cursor(cursor)
             
     def on_button_press_event(self, text_view, event):
+
+        def create_menu(commands):
+            menu = Gtk.Menu()
+            menu.attach_to_widget(self)
+            for cmd in commands:
+                item = Gtk.MenuItem(label=cmd)
+                menu.append(item)
+                item.connect("activate", self.on_menu_item_activate, cmd)
+            return menu
+            
         x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = self.get_iter_at_location(x, y)
         if found:
@@ -87,16 +98,10 @@ class WordyTextView(Gtk.TextView):
                 word = self.words_by_tag[t]
                 commands = word.active_commands(self.game)
                 if len(commands) > 0:
-                    menu = Gtk.Menu()
-                    menu.attach_to_widget(text_view)
-                    for cmd in commands:
-                        item = Gtk.MenuItem(label=cmd)
-                        menu.append(item)
-                    
-                        def on_menu_item_activate(m, c):
-                            self.perform_command(c)
-                        item.connect("activate", on_menu_item_activate, cmd)
+                    menu = create_menu(commands)
                     menu.show_all()
                     menu.popup_at_pointer(event)
                     self.stop_emission_by_name("button-press-event")
 
+    def on_menu_item_activate(self, m, c):
+        self.perform_command(c)
