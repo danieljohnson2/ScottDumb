@@ -24,12 +24,18 @@ class WordyTextView(Gtk.TextView):
         self.connect("motion-notify-event", self.on_motion_notify_event)
 
     def append_line(self):
+        """Adds a line break to the view. If it is now empty, this does nothing."""
         iter = self.buffer.get_end_iter()
         if self.buffer.get_char_count() > 0:
             self.buffer.insert(iter, "\n")
 
     def append_words(self, words):
-
+        """
+        Appends a sequence of words to the view. If there are any
+        active commands on any words, this will record takes for them and
+        underline them so they can be handled.
+        """
+        
         def get_tag(word):
             if word.is_plain(self.game): return None
 
@@ -64,9 +70,19 @@ class WordyTextView(Gtk.TextView):
             else: word_index += 1
 
     def clear(self):
+        """Clears the text from this view."""
+        
         start = self.buffer.get_start_iter()
         end = self.buffer.get_end_iter()
         self.buffer.delete(start, end)
+        
+        tag_table = self.buffer.get_tag_table()
+
+        for tag in self.words_by_tag:
+            del self.words_by_tag[tag].tags[self.buffer]
+        self.words_by_tag = { }
+
+        tag_table.foreach(lambda tag: tag_table.remove(tag))
 
     def on_motion_notify_event(self, text_view, event):
         x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
