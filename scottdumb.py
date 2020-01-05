@@ -68,7 +68,7 @@ class GameWindow(Gtk.Window):
 
     def __init__(self, game_file):
         Gtk.Window.__init__(self)
-
+        
         with open(game_file, "r") as f:
             self.game = GuiGame(ExtractedFile(f), self)
 
@@ -91,18 +91,21 @@ class GameWindow(Gtk.Window):
         self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
         self.room_view.connect("button-press-event", self.on_button_press_event)
-
+        self.room_view.connect("motion-notify-event", self.on_motion_notify_event)
+        
         self.script_buffer = Gtk.TextBuffer()
         self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
         self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.script_view.connect("button-press-event", self.on_button_press_event)
+        self.script_view.connect("motion-notify-event", self.on_motion_notify_event)
 
         self.inventory_buffer = Gtk.TextBuffer()
         self.inventory_view = Gtk.TextView(buffer=self.inventory_buffer,
             editable=False, width_request=300)
         self.inventory_view.set_wrap_mode(Gtk.WrapMode.WORD)
         self.inventory_view.connect("button-press-event", self.on_button_press_event)
-        
+        self.inventory_view.connect("motion-notify-event", self.on_motion_notify_event)
+
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
@@ -247,6 +250,16 @@ class GameWindow(Gtk.Window):
     def on_room_view_size_allocate(self, allocation, data):
         self.scroll_to_bottom()
 
+    def on_motion_notify_event(self, text_view, event):
+        x, y = text_view.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+        found, i = text_view.get_iter_at_location(x, y)
+        w = text_view.get_window(Gtk.TextWindowType.TEXT)
+        if found and len(i.get_tags()) > 0:
+            cursor = Gdk.Cursor(Gdk.CursorType.ARROW)
+        else:
+            cursor = Gdk.Cursor(Gdk.CursorType.XTERM)
+        w.set_cursor(cursor)
+            
     def on_button_press_event(self, text_view, event):
         x, y = text_view.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = text_view.get_iter_at_location(x, y)
@@ -311,4 +324,5 @@ seed()
 win = GameWindow(argv[1])
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
+
 Gtk.main()
