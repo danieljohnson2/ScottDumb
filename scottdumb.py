@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from game import Game
 from extraction import ExtractedFile
+from wordytextview import WordyTextView
 
 from sys import argv
 from random import seed
@@ -10,7 +11,6 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
-from gi.repository import Pango
 
 def make_filter(name, pattern):
     """Builds a GTK file-filter conveniently."""
@@ -86,26 +86,13 @@ class GameWindow(Gtk.Window):
 
         self.set_titlebar(self.header_bar)
 
-        self.room_buffer = Gtk.TextBuffer()
-        self.room_view = Gtk.TextView(buffer=self.room_buffer, editable=False)
-        self.room_view.set_wrap_mode(Gtk.WrapMode.WORD)
+        self.room_view = WordyTextView(self.game, self.perform_command)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
-        self.room_view.connect("button-press-event", self.on_button_press_event)
-        self.room_view.connect("motion-notify-event", self.on_motion_notify_event)
         
-        self.script_buffer = Gtk.TextBuffer()
-        self.script_view = Gtk.TextView(buffer=self.script_buffer, editable=False)
-        self.script_view.set_wrap_mode(Gtk.WrapMode.WORD)
-        self.script_view.connect("button-press-event", self.on_button_press_event)
-        self.script_view.connect("motion-notify-event", self.on_motion_notify_event)
-
-        self.inventory_buffer = Gtk.TextBuffer()
-        self.inventory_view = Gtk.TextView(buffer=self.inventory_buffer,
-            editable=False, width_request=300)
-        self.inventory_view.set_wrap_mode(Gtk.WrapMode.WORD)
-        self.inventory_view.connect("button-press-event", self.on_button_press_event)
-        self.inventory_view.connect("motion-notify-event", self.on_motion_notify_event)
-
+        self.script_view = WordyTextView(self.game, self.perform_command)
+        
+        self.inventory_view = WordyTextView(self.game, self.perform_command, width_request=300)
+        
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
@@ -139,7 +126,6 @@ class GameWindow(Gtk.Window):
 
         self.add(vBox)
 
-        self.words_by_tag = { }
         self.set_default_size(900, 500)
         self.before_turn()
 
@@ -151,56 +137,10 @@ class GameWindow(Gtk.Window):
         words = self.game.extract_output()
 
         if len(words) > 0:
-            iter = self.script_buffer.get_end_iter()
-            if self.script_buffer.get_char_count() > 0:
-                self.script_buffer.insert(iter, "\n")
-            self.append_words(words, self.script_buffer)
+            self.script_view.append_line()
+            self.script_view.append_words(words)
             self.scroll_to_bottom()
-
-    def append_words(self, words, buffer):
-        words = list(words)
-        while len(words) > 0 and words[0].is_newline():
-            del words[0]
-
-        while len(words) > 0 and words[-1].is_newline():
-            del words[-1]
-
-        iter = buffer.get_end_iter()
-        word_index = 0
-        for word in words:
-            if word_index > 0: buffer.insert(iter, " ")
-            tag = self.get_tag(word, buffer)
-            if tag is None:
-                buffer.insert(iter, str(word))
-            else:
-                buffer.insert_with_tags(iter, str(word), tag)
             
-            if word.is_newline(): word_index = 0
-            else: word_index += 1
-
-    def get_tag(self, word, buffer):
-        if word.is_plain(self.game): return None
-
-        if buffer in word.tags:
-            return word.tags[buffer]
-        else:
-            tag = Gtk.TextTag()
-            tag.set_property("underline", Pango.Underline.SINGLE)
-            buffer.get_tag_table().add(tag)
-            self.words_by_tag[tag] = word
-            word.tags[buffer] = tag
-            return tag;
-
-    def clear_buffer(self, buffer):
-        start = buffer.get_start_iter()
-        end = buffer.get_end_iter()
-        buffer.delete(start, end)
-
-    def clear_output(self):
-        """Clears the output in the window, and clears the output buffer."""
-        self.game.extract_output()
-        self.clear_buffer(self.script_buffer)
-
     def scroll_to_bottom(self):
         """Scrolls the output window as far down as possible."""
         def do_scroll():
@@ -211,7 +151,7 @@ class GameWindow(Gtk.Window):
         # Scrolling may fail because the wigdets are not laid out yet;
         # so this will try to do it again a little later.
         GLib.idle_add(do_scroll)
-
+        
     def update_room_view(self):
         """
         Generate the room description text afresh and displays it. The previous
@@ -220,8 +160,8 @@ class GameWindow(Gtk.Window):
         game = self.game
         if game.wants_room_update or game.needs_room_update:
             words = game.player_room.get_look_words()
-            self.clear_buffer(self.room_buffer)
-            self.append_words(words, self.room_buffer)
+            self.room_view.clear_buffer()
+            self.room_view.append_words(words)
             game.needs_room_update = False
             game.wants_room_update = False
 
@@ -230,8 +170,8 @@ class GameWindow(Gtk.Window):
 
     def update_inventory_view(self):
         words = self.game.get_inventory_words()
-        self.clear_buffer(self.inventory_buffer)
-        self.append_words(words, self.inventory_buffer)
+        self.inventory_view.clear_buffer()
+        self.inventory_view.append_words(words)
         
     def before_turn(self):
         """
@@ -250,44 +190,12 @@ class GameWindow(Gtk.Window):
     def on_room_view_size_allocate(self, allocation, data):
         self.scroll_to_bottom()
 
-    def on_motion_notify_event(self, text_view, event):
-        x, y = text_view.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
-        found, i = text_view.get_iter_at_location(x, y)
-        if found and len(i.get_tags()) > 0:
-            cursor_name = "pointer"
-        else:
-            cursor_name = "text"
-
-        w = text_view.get_window(Gtk.TextWindowType.TEXT)
-        cursor = Gdk.Cursor.new_from_name(w.get_display(), cursor_name)
-        w.set_cursor(cursor)
-            
-    def on_button_press_event(self, text_view, event):
-        x, y = text_view.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
-        found, i = text_view.get_iter_at_location(x, y)
-        if found:
-            for t in i.get_tags():
-                word = self.words_by_tag[t]
-                commands = word.active_commands(self.game)
-                if len(commands) > 0:
-                    menu = Gtk.Menu()
-                    menu.attach_to_widget(text_view)
-                    for cmd in commands:
-                        item = Gtk.MenuItem(label=cmd)
-                        menu.append(item)
-                    
-                        def on_menu_item_activate(m, c):
-                            self.perform_command(c)
-                        item.connect("activate", on_menu_item_activate, cmd)
-                    menu.show_all()
-                    menu.popup_at_pointer(event)
-                    text_view.stop_emission_by_name("button-press-event")
-
     def on_load_game(self, data):
         """Handles the load game button."""
         game = self.game
         if game.load_game():
-            self.clear_output()
+            game.extract_output()
+            self.script_view.clear_buffer()
             game.output_line("Game loaded.")
             self.flush_output()
             self.update_room_view()
