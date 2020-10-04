@@ -546,26 +546,36 @@ class Room(GameObject):
         return words
 
 class Item(GameObject):
-        """Represents an item that can be moved from room to room.
+    """Represents an item that can be moved from room to room.
 
-        room - the room the item is in.
-        starting_room - the room the item started in
-        carry_word - word used to get or drop the item;
-                     None if the item can't be taken.
-        room_word - ouput word output for the room description
-        inventory_word - output word output for the inventory
-        """
+    room - the room the item is in.
+    starting_room - the room the item started in
+    carry_word - word used to get or drop the item;
+                 None if the item can't be taken.
+    room_word - ouput word output for the room description
+    inventory_word - output word output for the inventory
+    """
 
-        def __init__(self, game, extracted_item):
-            GameObject.__init__(self, game, extracted_item.description)
-            self.carry_word = game.get_noun(extracted_item.carry_word)
-            self.room = None
-            output_word = OutputWord(self.description, item=self)
-            self.room_word = output_word
-            self.inventory_word = output_word
+    def __init__(self, game, extracted_item):
+        GameObject.__init__(self, game, extracted_item.description)
+        self.carry_word = game.get_noun(extracted_item.carry_word)
+        self.room = None
+        output_word = OutputWord(self.description, item=self)
+        self.room_word = output_word
+        self.inventory_word = output_word
 
-        def is_treasure(self): return self.description.startswith("*")
+    def is_treasure(self): return self.description.startswith("*")
 
+    def get_carry_name(self):
+        """Picks a name to include in a command referring to this item.
+        This is a word from the description that starts with the carry_word."""
+        short_name = str(self.carry_word).upper()
+        for w in self.description.upper().split():
+            s = w.strip("*")
+            if s[0:len(short_name)] == short_name:
+                return s
+        return short_name
+        
 class Flag():
     def __init__(self):
         self.state = False
@@ -595,11 +605,12 @@ class OutputWord():
         """
         if self.item is not None and self.item.carry_word is not None:
             carry_word = self.item.carry_word
+            carry_name = self.item.get_carry_name()
             commands = []
             if self.item.room == game.inventory:
-                commands.append("DROP " + str(carry_word))
+                commands.append("DROP " + carry_name)
             else:
-                commands.append("GET " + str(carry_word))
+                commands.append("GET " + carry_name)
                 
             for cmd in game.commands:
                 if cmd.check_available_command(carry_word):
