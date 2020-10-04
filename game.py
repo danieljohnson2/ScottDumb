@@ -151,6 +151,15 @@ class Game():
         self.output_words = []
         return out
 
+    def resolve_noun_name(self, noun):
+        """Provides a name to use for a noun; if the noun matches the
+        carry_word of an item, this will be its carry_name. If not, it returns
+        the noun text."""
+        item = self.get_carry_item(noun)
+        if item is not None:
+            return item.get_carry_name()
+        return str(noun)
+
     def get_carry_item(self, word):
         """Looks up the item that can be picked up via "GET <word>"
         
@@ -614,7 +623,7 @@ class OutputWord():
                 
             for cmd in game.commands:
                 if cmd.check_available_command(carry_word):
-                    command = str(cmd.verb) + " " + str(cmd.noun)
+                    command = str(cmd.verb) + " " + game.resolve_noun_name(cmd.noun)
                     if command not in commands:
                         commands.append(command)
                     
