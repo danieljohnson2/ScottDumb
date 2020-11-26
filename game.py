@@ -401,7 +401,7 @@ class Game():
             dark = 1 if self.dark_flag.state else 0
             player_room_index = get_room_index(self.player_room)
 
-            file.write(f"{bitflags} {dark} {player_room_index} {self.counter} 0 {self.light_remaining}\n")
+            file.write(f"{bitflags} {dark} {player_room_index} {self.counter.value} 0 {self.light_remaining}\n")
 
             for item in self.items:
                 file.write(f"{get_room_index(item.room)}\n")
@@ -607,7 +607,7 @@ class Item(GameObject):
         if word is None: return None
         short_name = str(word).upper()
         for w in self.description.upper().split():
-            s = w.strip("*")
+            s = w.strip("*!:;.?$#@")
             if s[0:len(short_name)] == short_name:
                 return s
         return None
