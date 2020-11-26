@@ -133,17 +133,14 @@ class Game():
         # you can't carry can still be clicked.
         used_words = {item.carry_word for item in self.items 
                                       if item.carry_word is not None}
-
+        used_words |= set(self.directions)
+        
         for n in self.nouns.values():
             if n not in used_words:
-                nameables = [item for item in self.items
-                                  if item.command_word is None
-                                  and item.get_candidate_name(n) is not None]
-
-                if len(nameables) == 1:
-                    nameables[0].command_word = n
-                    used_words.add(n)
-                    
+                for nm in self.items:
+                    if nm.get_candidate_name(n) is not None:
+                        nm.command_words.add(n)
+                        
         self.output_words = []
 
     def output(self, text):
@@ -165,15 +162,6 @@ class Game():
         out = self.output_words
         self.output_words = []
         return out
-
-    def resolve_noun_name(self, noun):
-        """Provides a name to use for a noun; if the noun matches the
-        carry_word of an item, this will be its carry_name. If not, it returns
-        the noun text."""
-        item = self.get_command_item(noun)
-        if item is not None:
-            return item.get_command_name()
-        return str(noun)
 
     def get_carry_item(self, word):
         """Looks up the item that can be picked up via "GET <word>"
@@ -555,7 +543,7 @@ class Room(GameObject):
         """The text to describe the room and everything in it."""
 
         if self.game.dark_flag.state and self.game.lamp_item.room != self.game.inventory:
-            return OutputWord("It is too dark to see!")
+            return [OutputWord("It is too dark to see!")]
 
         words = [OutputWord(self.description)]
 
@@ -593,7 +581,7 @@ class Item(GameObject):
     starting_room - the room the item started in
     carry_word - word used to get or drop the item;
                  None if the item can't be taken.
-    command_word - word used to refer to this item by commands
+    command_words - word used to refer to this item by commands
     room_word - ouput word output for the room description
     inventory_word - output word output for the inventory
     """
@@ -601,7 +589,7 @@ class Item(GameObject):
     def __init__(self, game, extracted_item):
         GameObject.__init__(self, game, extracted_item.description)
         self.carry_word = game.get_noun(extracted_item.carry_word)
-        self.command_word = self.carry_word
+        self.command_words = {self.carry_word} if self.carry_word is not None else set()
         self.room = None
         output_word = OutputWord(self.description, item=self)
         self.room_word = output_word
@@ -609,11 +597,11 @@ class Item(GameObject):
 
     def is_treasure(self): return self.description.startswith("*")
 
-    def get_command_name(self):
+    def get_command_name(self, word):
         """Picks a name to include in a command referring to this item.
         This is a word from the description that starts with the command_word."""
-        name = self.get_candidate_name(self.command_word)
-        return name if name is not None else str(self.command_word).upper()
+        name = self.get_candidate_name(word)
+        return name if name is not None else str(word).upper()
         
     def get_candidate_name(self, word):
         if word is None: return None
@@ -651,20 +639,22 @@ class OutputWord():
         Returns a list of commands this word can trigger, which
         may be empty for a 'plain' word.
         """
-        if self.item is not None and self.item.command_word is not None:
-            command_word = self.item.command_word
-            command_name = self.item.get_command_name()
+        if self.item is not None:
             commands = []
-            if self.item.room == game.inventory:
-                commands.append("DROP " + command_name)
-            else:
-                commands.append("GET " + command_name)
+            for command_word in self.item.command_words:
+                command_name = self.item.get_command_name(command_word)
                 
-            for cmd in game.commands:
-                if cmd.check_available_command(command_word):
-                    command = str(cmd.verb) + " " + game.resolve_noun_name(cmd.noun)
-                    if command not in commands:
-                        commands.append(command)
+                if self.item.carry_word is not None:
+                    if self.item.room == game.inventory:
+                        commands.append("DROP " + command_name)
+                    else:
+                        commands.append("GET " + command_name)
+                    
+                for cmd in game.commands:
+                    if cmd.check_available_command(command_word):
+                        command = str(cmd.verb) + " " + command_name
+                        if command not in commands:
+                            commands.append(command)
                     
             return commands
         elif self.direction is not None:
