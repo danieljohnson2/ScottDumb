@@ -436,7 +436,7 @@ class Game():
                 bitflags = bitflags >> 1
 
             self.player_room = find_room(int(state[2]))
-            self.counter = int(state[3])
+            self.counter.value = int(state[3])
             self.light_remaining = int(state[5])
 
             for item in self.items:
