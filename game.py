@@ -131,16 +131,23 @@ class Game():
 
         # try to assign command-words where we can find 'em, so items
         # you can't carry can still be clicked.
-        used_words = {item.carry_word for item in self.items 
-                                      if item.carry_word is not None}
-        used_words |= set(self.directions)
+        carry_words = {item.carry_word for item in self.items 
+                                       if item.carry_word is not None}
         
         for n in self.nouns.values():
-            if n not in used_words:
+            if n not in self.directions and n not in carry_words:
                 for nm in self.items:
                     if nm.get_candidate_name(n) is not None:
                         nm.command_words.add(n)
-                        
+                   
+        # We will reuse the carry words, but only if that's the only
+        # word available for the item.     
+        for n in carry_words:
+            if n not in self.directions:
+                for nm in self.items:
+                    if len(nm.command_words) == 0 and nm.get_candidate_name(n) is not None:
+                        nm.command_words.add(n)
+        
         self.output_words = []
 
     def output(self, text):
@@ -604,11 +611,12 @@ class Item(GameObject):
         return name if name is not None else str(word).upper()
         
     def get_candidate_name(self, word):
+        """Picks a name for this item that resembles the word given."""
         if word is None: return None
         short_name = str(word).upper()
         for w in self.description.upper().split():
             s = w.strip("*!:;.?$#@")
-            if s[0:len(short_name)] == short_name:
+            if s[0:len(short_name)] == short_name and "'" not in s:
                 return s
         return None
         
