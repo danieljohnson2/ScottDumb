@@ -102,3 +102,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# VSCode artifacts
+.project
+.vscode
+
+# Local documentation copies
+docs
+
+# Saved games
+*.sav
