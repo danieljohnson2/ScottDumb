@@ -19,6 +19,22 @@ def make_filter(name, pattern):
     f.add_pattern(pattern)
     return f
 
+def get_game_path():
+    dlg = Gtk.FileChooserDialog(title="Game",
+        action=Gtk.FileChooserAction.OPEN)
+    dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+    dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+    dlg.set_default_response(Gtk.ResponseType.OK)
+    dlg.add_filter(make_filter("Games", "*.dat"))
+    dlg.add_filter(make_filter("All Files", "*"))
+    try:
+        if (dlg.run() == Gtk.ResponseType.OK):
+            return dlg.get_filename()
+        else:
+            return None
+    finally:
+        dlg.destroy()
+
 class GuiGame(Game):
     """This game subclass uses file chooser dialogs to prompt for save or load file names."""
     def __init__(self, extracted_game, window):
@@ -231,7 +247,13 @@ class GameWindow(Gtk.Window):
             self.perform_command("SCORE")
             
 seed()
-win = GameWindow(argv[1])
+
+if len(argv) >= 2:
+    game_path = argv[1]
+else:
+    game_path = get_game_path()
+
+win = GameWindow(game_path)
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 
