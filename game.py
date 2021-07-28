@@ -403,9 +403,9 @@ class Game():
         if path is None: return
 
         with open(path, "w") as file:
-            # counters (and saved rooms, which we don't support yet.)
+            # counters (and saved rooms)
             for n in range(0, 16):
-                file.write(f"{self.counters[n].value} 0\n")
+                file.write(f"{self.counters[n].value} {get_room_index(self.saved_player_rooms[n])}\n")
 
             bitflags = 0
             for f in reversed(self.flags):
@@ -414,7 +414,7 @@ class Game():
             dark = 1 if self.dark_flag.state else 0
             player_room_index = get_room_index(self.player_room)
 
-            file.write(f"{bitflags} {dark} {player_room_index} {self.counter.value} 0 {self.light_remaining}\n")
+            file.write(f"{bitflags} {dark} {player_room_index} {self.counter.value} {get_room_index(self.saved_player_room)} {self.light_remaining}\n")
 
             for item in self.items:
                 file.write(f"{get_room_index(item.room)}\n")
@@ -437,10 +437,11 @@ class Game():
         if path is None: return False
 
         with open(path, "r") as file:
-            # counters and saved rooms, which we don't support yet.
+            # counters and saved rooms
             for n in range(0, 16):
                 line = file.readline().split()
                 self.counters[n].value = int(line[0])
+                self.saved_player_rooms[n] = find_room(int(line[1]))
                 
             state = file.readline().split()
             bitflags = int(state[0])
@@ -450,6 +451,7 @@ class Game():
 
             self.player_room = find_room(int(state[2]))
             self.counter.value = int(state[3])
+            self.saved_player_room = find_room(int(state[4]))
             self.light_remaining = int(state[5])
 
             for item in self.items:
