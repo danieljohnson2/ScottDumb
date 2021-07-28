@@ -114,6 +114,10 @@ class Logic():
         def put_item_with(): game.move_item(item1, item2.room)
 
         def move_player(): game.move_player(room)
+        def swap_loc():
+            saved_player_room = game.saved_player_room
+            game.saved_player_room = game.player_room
+            game.move_player(saved_player_room)
 
         def set_counter(): game.counter.value = counter_value
         def swap_counter(): counter.swap(game)
@@ -135,6 +139,10 @@ class Logic():
         def refill_lamp():
             game.light_remaining = game.light_duration
             game.move_item(game.lamp_item, game.inventory)
+        def swap_specific_loc():
+            saved_player_room = game.saved_player_rooms[saved_room_value]
+            game.saved_player_rooms[saved_room_value] = game.player_room
+            game.move_player(saved_player_room)
 
         def continue_actions(): game.continuing_commands = True
 
@@ -201,6 +209,8 @@ class Logic():
         if op == 79:
             counter_value = value_source()
             return set_counter
+        if op == 80:
+            return swap_loc
         if op == 81:
             counter = game.counters[value_source()]
             return swap_counter
@@ -213,6 +223,9 @@ class Logic():
         if op == 84: return lambda: game.output(game.parsed_noun)
         if op == 85: return lambda: game.output_line(game.parsed_noun)
         if op == 86: return lambda: game.output_line()
+        if op == 87:
+            saved_room_value = value_source()
+            return swap_specific_loc
         if op == 88: return lambda: game.sleep(2)
         if op >= 102: return lambda: game.output_line(game.messages[op - 50])
         return undefined()

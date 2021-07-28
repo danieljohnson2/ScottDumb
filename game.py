@@ -14,6 +14,9 @@ class Game():
     counters - list of 16 counters
     logics - list of all game logics
 
+    saved_player_room - a room the player was in
+    saved_player_rooms - a list of more rooms the player was in
+
     dark_flag - the flag (#15) that is set when it is dark
     lamp_exhausted_flag - the flag (#16) set when lamp runs out
     lamp_item - the lamp (#9)
@@ -43,6 +46,8 @@ class Game():
         self.rooms = [Room(self, i, x) for i, x in enumerate(extracted.rooms)]
         self.inventory = Room(self, -1, description = "Inventory")
         self.player_room = self.rooms[extracted.starting_room]
+        self.saved_player_room = self.player_room
+        self.saved_player_rooms = [self.player_room for n in range(0, 16)]
         self.needs_room_update = True
         self.wants_room_update = True
         self.game_over = False
@@ -60,12 +65,12 @@ class Game():
             for text in g:
                 self.nouns[self.normalize_word(text)] = word
 
-        self.north_word = self.get_noun("NOR")
-        self.south_word = self.get_noun("SOU")
-        self.east_word = self.get_noun("EAS")
-        self.west_word = self.get_noun("WES")
+        self.north_word = self.get_noun("NORTH")
+        self.south_word = self.get_noun("SOUTH")
+        self.east_word = self.get_noun("EAST")
+        self.west_word = self.get_noun("WEST")
         self.up_word = self.get_noun("UP")
-        self.down_word = self.get_noun("DOW")
+        self.down_word = self.get_noun("DOWN")
         self.directions = [
             self.north_word, self.south_word,
             self.east_word, self.west_word,
