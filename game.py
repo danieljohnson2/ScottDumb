@@ -467,7 +467,7 @@ class Game():
 
     def sleep(self, seconds):
         """This method waits for a number of seconds; you can override this to keep your GUI alive."""
-        sleep(2)
+        sleep(seconds)
        
 class Word():
     """Represents a word in the vocabulary; these are interned, so duplicate
