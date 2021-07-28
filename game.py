@@ -112,6 +112,7 @@ class Game():
         for ei in extracted.items:
             item = Item(self, ei)
             if ei.starting_room == -1: item.starting_room = self.inventory
+            elif ei.starting_room == 0: item.starting_room = None
             else: item.starting_room = self.rooms[ei.starting_room]
             item.room = item.starting_room
             self.items.append(item)
