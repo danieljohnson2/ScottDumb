@@ -267,8 +267,6 @@ class Game():
     def perform_occurances(self):
         """This must be called before taking user input, and runs 'occurance'
         logic that handles events other that carrying out commands.
-
-        This returns text to be displayed to the user before accepting input.
         """
 
         if self.lamp_item.room == self.inventory and self.light_remaining > 0:
@@ -276,16 +274,24 @@ class Game():
             if self.light_remaining <= 0:
                 self.lamp_exhausted_flag.state = True
 
-        self.execute_logic(self.occurances, lambda l: l.check_occurance(), halt_after_first=False)
+        self.continuing_commands = False
+        
+        for l in self.occurances:
+            if self.continuing_commands:
+                if l.is_available():
+                    self.continuing_commands = False
+                    l.execute()
+            elif l.check_occurance():
+                l.execute()
 
     def perform_command(self, verb, noun):
         """Executes a command given. Either verb or noun can be None.
 
-        This returns the text to be displayed to the user. It also
-        updates the game state, and it can raise exceptions for errors.
+        This executes commands first, but if none are found it implements
+        some default verbs.
         """
 
-        halted = self.execute_logic(self.commands, lambda l: l.check_command(verb, noun))
+        halted = self.execute_command(self.commands, lambda l: l.check_command(verb, noun))
         if halted: return
 
         if verb is None or verb == self.go_word:
@@ -310,13 +316,13 @@ class Game():
         else:
             raise ValueError("I don't understand.")
 
-    def execute_logic(self, logics, checker, halt_after_first=True):
+    def execute_command(self, logics, checker):
         """
         This executes a list of logics, as permitted by its conditions. Logics
-        can only run if the 'checker' function given returns treu for it.
-        If half_after_first is true, this method halts after the first action.
-
-        This method returns true if it executes any action, and False if it found
+        can only run if the 'checker' function given returns true for it.
+        This halts after the first action, unless the 'continue' opcode overrides this.
+        
+        This method returns True if it executes any action, and False if it found
         none to execute.
         """
         self.continuing_commands = False
@@ -331,7 +337,7 @@ class Game():
             elif checker(l):
                 executed_any = True
                 l.execute()
-                if halt_after_first and not self.continuing_commands: break
+                if not self.continuing_commands: break
 
         return executed_any
 
