@@ -278,7 +278,7 @@ class Game():
         
         for l in self.occurances:
             if self.continuing_commands:
-                if l.is_available():
+                if l.check_occurance():
                     self.continuing_commands = False
                     l.execute()
             elif l.check_occurance():
