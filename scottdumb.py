@@ -235,6 +235,8 @@ class GameWindow(Gtk.Window):
         """Handles the load game button."""
         game = self.game
         if game.load_game():
+            self.pending_command = None
+            self.running_iter = None
             game.extract_output()
             self.script_view.clear()
             game.output_line("Game loaded.")
@@ -243,6 +245,17 @@ class GameWindow(Gtk.Window):
             self.command_entry.grab_focus()
 
     def on_save_game(self, data):
+        if self.running_iter is not None:
+            dialog = Gtk.MessageDialog(
+                transient_for=self,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.CANCEL,
+                text="You cannot save now.")
+            dialog.format_secondary_text("You cannot save the game while game actions are happening.")
+            dialog.run()
+            dialog.destroy()
+            return
+            
         """Handles the save game button."""
         self.game.save_game()
 
