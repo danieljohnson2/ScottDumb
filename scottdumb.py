@@ -3,6 +3,7 @@ from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
 from execution import DelayRequest
+from contextlib import contextmanager
 
 from sys import argv
 from random import seed
@@ -20,22 +21,40 @@ def make_filter(name, pattern):
     f.add_pattern(pattern)
     return f
 
-def get_game_path():
-    dlg = Gtk.FileChooserDialog(title="Game",
-        action=Gtk.FileChooserAction.OPEN)
-    dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-    dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-    dlg.set_default_response(Gtk.ResponseType.OK)
-    dlg.add_filter(make_filter("Games", "*.dat"))
-    dlg.add_filter(make_filter("All Files", "*"))
+@contextmanager
+def filechooser(window, title, action):
+    dlg = Gtk.FileChooserDialog(title="Game", action=action,
+        transient_for=window)
     try:
+        yield dlg
+    finally:
+        dlg.destroy()
+
+@contextmanager
+def error_alert(window, text):
+    dlg = Gtk.MessageDialog(
+        transient_for=self,
+        message_type=Gtk.MessageType.ERROR,
+        buttons=Gtk.ButtonsType.CANCEL,
+        text=text)
+    try:
+        yield dlg
+    finally:
+        dlg.destroy()
+
+def get_game_path():
+    with filechooser(None, "Game", Gtk.FileChooserAction.OPEN) as dlg:
+        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+        dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        dlg.set_default_response(Gtk.ResponseType.OK)
+        dlg.add_filter(make_filter("Games", "*.dat"))
+        dlg.add_filter(make_filter("All Files", "*"))
+        
         if (dlg.run() == Gtk.ResponseType.OK):
             return dlg.get_filename()
         else:
             return None
-    finally:
-        dlg.destroy()
-
+    
 class GuiGame(Game):
     """This game subclass uses file chooser dialogs to prompt for save or load file names."""
     def __init__(self, extracted_game, window):
@@ -43,38 +62,30 @@ class GuiGame(Game):
         self.window = window
 
     def get_save_game_path(self):
-        dlg = Gtk.FileChooserDialog(title="Save Game",
-            parent=self.window,
-            action=Gtk.FileChooserAction.SAVE)
-        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-        dlg.set_default_response(Gtk.ResponseType.OK)
-        dlg.add_filter(make_filter("Saved Games", "*.sav"))
-        dlg.add_filter(make_filter("All Files", "*"))
-        try:
+        with filechooser(self.window, "Save Game", Gtk.FileChooserAction.SAVE) as dlg:
+            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+            dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
+            dlg.set_default_response(Gtk.ResponseType.OK)
+            dlg.add_filter(make_filter("Saved Games", "*.sav"))
+            dlg.add_filter(make_filter("All Files", "*"))
+        
             if (dlg.run() == Gtk.ResponseType.OK):
                 return dlg.get_filename()
             else:
                 return None
-        finally:
-            dlg.destroy()
-
+        
     def get_load_game_path(self):
-        dlg = Gtk.FileChooserDialog(title="Load Game",
-            parent=self.window,
-            action=Gtk.FileChooserAction.OPEN)
-        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        dlg.set_default_response(Gtk.ResponseType.OK)
-        dlg.add_filter(make_filter("Saved Games", "*.sav"))
-        dlg.add_filter(make_filter("All Files", "*"))
-        try:
+        with filechooser(self.window, "Load Game", Gtk.FileChooserAction.OPEN) as dlg:
+            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
+            dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+            dlg.set_default_response(Gtk.ResponseType.OK)
+            dlg.add_filter(make_filter("Saved Games", "*.sav"))
+            dlg.add_filter(make_filter("All Files", "*"))
+        
             if (dlg.run() == Gtk.ResponseType.OK):
                 return dlg.get_filename()
             else:
                 return None
-        finally:
-            dlg.destroy()
 
 class GameWindow(Gtk.Window):
     """
@@ -226,14 +237,8 @@ class GameWindow(Gtk.Window):
 
     def on_save_game(self, data):
         if self.running_iter is not None:
-            dialog = Gtk.MessageDialog(
-                transient_for=self,
-                message_type=Gtk.MessageType.ERROR,
-                buttons=Gtk.ButtonsType.CANCEL,
-                text="You cannot save now.")
-            dialog.format_secondary_text("You cannot save the game while game actions are happening.")
-            dialog.run()
-            dialog.destroy()
+            with error_alert(selk, "You cannot save now.") as dlg:
+                dlg.format_secondary_text("You cannot save the game while game actions are happening.")
             return
             
         """Handles the save game button."""
