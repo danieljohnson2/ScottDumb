@@ -226,7 +226,7 @@ class Logic():
         if op == 87:
             saved_room_value = value_source()
             return swap_specific_loc
-        if op == 88: return lambda: 2000 # wait 2000 ms
+        if op == 88: return lambda: DelayRequest(2000)
         if op >= 102: return lambda: game.output_line(game.messages[op - 50])
         return undefined()
 
@@ -273,3 +273,9 @@ class CommandContinuation(Logic):
     def is_continuation(self):
         return True
 
+class DelayRequest():
+    """This object represents a request for the UI to pause
+    before proceeding to the next command. This can be
+    returned from the command execute() method."""
+    def __init__(self, milliseconds):
+        self.milliseconds = milliseconds

@@ -2,6 +2,7 @@
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
+from execution import DelayRequest
 
 from sys import argv
 from random import seed
@@ -153,12 +154,12 @@ class GameWindow(Gtk.Window):
         if self.running_iter is not None:
             try:
                 while True:
-                    delay = next(self.running_iter)
+                    request = next(self.running_iter)
                     self.flush_output()
                     self.update_room_view()
 
-                    if isinstance(delay, int):
-                        GLib.timeout_add(int(delay), self.run_next_command)
+                    if isinstance(request, DelayRequest):
+                        GLib.timeout_add(request.milliseconds, self.run_next_command)
                         break
             except StopIteration:
                 self.running_iter = None
