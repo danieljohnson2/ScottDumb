@@ -145,10 +145,10 @@ class GameWindow(Gtk.Window):
 
         self.set_default_size(900, 500)
 
-        for x in self.before_turn(): pass
-
-        self.running_iter = None
+        self.running_iter = self.before_turn()
         self.pending_command = None
+
+        self.run_next_command()
 
     def flush_output(self):
         """
