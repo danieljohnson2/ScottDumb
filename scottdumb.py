@@ -103,12 +103,12 @@ class GameWindow(Gtk.Window):
 
         self.set_titlebar(self.header_bar)
 
-        self.room_view = WordyTextView(self.game, self.trigger_command)
+        self.room_view = WordyTextView(self.game, self.queue_command)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
         
-        self.script_view = WordyTextView(self.game, self.trigger_command)
+        self.script_view = WordyTextView(self.game, self.queue_command)
         
-        self.inventory_view = WordyTextView(self.game, self.trigger_command, width_request=300)
+        self.inventory_view = WordyTextView(self.game, self.queue_command, width_request=300)
         
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
@@ -149,26 +149,6 @@ class GameWindow(Gtk.Window):
 
         self.running_iter = None
         self.pending_command = None
-
-    def run_next_command(self):
-        if self.running_iter is not None:
-            try:
-                while True:
-                    request = next(self.running_iter)
-                    self.flush_output()
-                    self.update_room_view()
-
-                    if isinstance(request, DelayRequest):
-                        GLib.timeout_add(request.milliseconds, self.run_next_command)
-                        break
-            except StopIteration:
-                self.running_iter = None
-
-                if self.pending_command is not None:
-                    cmd = self.pending_command
-                    self.pending_command = None
-                    self.trigger_command(cmd)
-        False # do not repeat
 
     def flush_output(self):
         """
@@ -259,40 +239,84 @@ class GameWindow(Gtk.Window):
         """Handles the save game button."""
         self.game.save_game()
 
-    def trigger_command(self, cmd):
+    # Command handling
+
+    def queue_command(self, cmd):
+        """Runs a command. A command may not complete immediately,
+        and if so it will be running after this returns. If called while
+        another command is running, this will queue the new command to run
+        after the old completes."""
         if self.running_iter is None:
             self.running_iter = self.command_iter(cmd)
             self.run_next_command()
         elif self.pending_command is None:
             self.pending_command = cmd
 
+    def cancel_commands(self):
+        """This terminates all running and pending command
+        activity. This interrupts a running command, if any,
+        and is done before loading save."""
+        self.running_iter = None
+        self.pending_command = None
+
     def command_iter(self, cmd):
+        """This handles a user command; it parses it and
+        echos it to the output, then starts it executing.
+        This returns an iterator that must be consumed to complete
+        to command, and may return requests to be handled;
+        see run_next_command()."""
         game = self.game
         try:
             self.command_entry.set_text("")
             verb, noun = game.parse_command(cmd)
             game.output_line("> " + cmd)
             self.flush_output()
-            for x in game.perform_command(verb, noun):
-                yield x
-                self.flush_output()
-                self.update_room_view()
+            yield from game.perform_command(verb, noun)
         except Exception as e:
             game.output(str(e))
             self.flush_output()
         
         yield from self.before_turn()
-        
+
+    def run_next_command(self):
+        """Executes the next step of running_iter, or
+        if that runs out, it starts pending_command and does
+        the first stop of that.
+
+        This loops and runs as much as possible of the commands,
+        but if a delay occurs it queues intself to run again after
+        the delay. In this way the UI can be responsive while a pause
+        opcode is running."""
+        if self.running_iter is not None:
+            try:
+                while True:
+                    request = next(self.running_iter)
+                    if isinstance(request, DelayRequest):
+                        GLib.timeout_add(request.milliseconds, self.run_next_command)
+                        break
+            except StopIteration:
+                self.running_iter = None
+
+                if self.pending_command is not None:
+                    cmd = self.pending_command
+                    self.pending_command = None
+                    self.queue_command(cmd)
+            except Exception as e:
+                game.output(str(e))
+        self.flush_output()
+        self.update_room_view()
+        False # do not repeat
+
     def on_command_activate(self, data):
         """Handles a user-entered command when the user hits enter."""
         if not self.game.game_over:
             cmd = self.command_entry.get_text()
-            self.trigger_command(cmd)
+            self.queue_command(cmd)
 
     def on_score(self, data):
         """Generates the score command"""
         if not self.game.game_over:
-            self.trigger_command("SCORE")
+            self.queue_command("SCORE")
             
 seed()
 
