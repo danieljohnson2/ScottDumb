@@ -249,8 +249,9 @@ class GameWindow(Gtk.Window):
         if self.running_iter is None:
             self.running_iter = self.command_iter(cmd)
             self.run_next_command()
-        elif self.pending_command is None:
+        else:
             self.pending_command = cmd
+            self.command_entry.set_text(cmd)
 
     def cancel_commands(self):
         """This terminates all running and pending command
@@ -297,7 +298,7 @@ class GameWindow(Gtk.Window):
             except StopIteration:
                 self.running_iter = None
 
-                if self.pending_command is not None:
+                if self.pending_command is not None and self.pending_command == self.command_entry.get_text():
                     cmd = self.pending_command
                     self.pending_command = None
                     self.queue_command(cmd)
