@@ -146,21 +146,27 @@ class GameWindow(Gtk.Window):
 
         for x in self.before_turn(): pass
 
-        self.running_command = None
+        self.running_iter = None
+        self.pending_command = None
 
     def run_next_command(self):
-        if self.running_command is not None:
+        if self.running_iter is not None:
             try:
-                delay = next(self.running_command)
-                self.flush_output()
-                self.update_room_view()
+                while True:
+                    delay = next(self.running_iter)
+                    self.flush_output()
+                    self.update_room_view()
 
-                if isinstance(delay, int):
-                    GLib.timeout_add(int(delay), self.run_next_command)
-                else:
-                    GLib.idle_add(self.run_next_command)
+                    if isinstance(delay, int):
+                        GLib.timeout_add(int(delay), self.run_next_command)
+                        break
             except StopIteration:
-                self.running_command = None
+                self.running_iter = None
+
+                if self.pending_command is not None:
+                    cmd = self.pending_command
+                    self.pending_command = None
+                    self.trigger_command(cmd)
         False # do not repeat
 
     def flush_output(self):
@@ -240,9 +246,11 @@ class GameWindow(Gtk.Window):
         self.game.save_game()
 
     def trigger_command(self, cmd):
-        if self.running_command is None:
-            self.running_command = self.command_iter(cmd)
+        if self.running_iter is None:
+            self.running_iter = self.command_iter(cmd)
             self.run_next_command()
+        elif self.pending_command is None:
+            self.pending_command = cmd
 
     def command_iter(self, cmd):
         game = self.game
