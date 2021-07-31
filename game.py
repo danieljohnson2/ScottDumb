@@ -266,6 +266,10 @@ class Game():
     def perform_occurances(self):
         """This must be called before taking user input, and runs 'occurance'
         logic that handles events other that carrying out commands.
+
+        This is an iterator; mostly it yields a sequence of 'None' which you must
+        consume to execute each step. But it may return a request object like
+        DelayRequest to ask the invoker to pause.
         """
 
         if self.lamp_item.room == self.inventory and self.light_remaining > 0:
@@ -288,6 +292,10 @@ class Game():
 
         This executes commands first, but if none are found it implements
         some default verbs.
+
+        This is an iterator; mostly it yields a sequence of 'None' which you must
+        consume to execute each step. But it may return a request object like
+        DelayRequest to ask the invoker to pause.
         """
 
         execution = self.execute_command(self.commands, lambda l: l.check_command(verb, noun))
@@ -327,8 +335,9 @@ class Game():
         can only run if the 'checker' function given returns true for it.
         This halts after the first action, unless the 'continue' opcode overrides this.
         
-        This method returns True if it executes any action, and False if it found
-        none to execute.
+        This is an iterator; mostly it yields a sequence of 'None' which you must
+        consume to execute each step. But it may return a request object like
+        DelayRequest to ask the invoker to pause.
         """
         self.continuing_commands = False
         
