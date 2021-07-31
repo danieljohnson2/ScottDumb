@@ -102,12 +102,12 @@ class GameWindow(Gtk.Window):
 
         self.set_titlebar(self.header_bar)
 
-        self.room_view = WordyTextView(self.game, self.perform_command)
+        self.room_view = WordyTextView(self.game, self.trigger_command)
         self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
         
-        self.script_view = WordyTextView(self.game, self.perform_command)
+        self.script_view = WordyTextView(self.game, self.trigger_command)
         
-        self.inventory_view = WordyTextView(self.game, self.perform_command, width_request=300)
+        self.inventory_view = WordyTextView(self.game, self.trigger_command, width_request=300)
         
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
@@ -143,11 +143,29 @@ class GameWindow(Gtk.Window):
         self.add(vBox)
 
         self.set_default_size(900, 500)
-        self.before_turn()
+
+        for x in self.before_turn(): pass
+
+        self.running_command = None
+
+    def run_next_command(self):
+        if self.running_command is not None:
+            try:
+                delay = next(self.running_command)
+                self.flush_output()
+                self.update_room_view()
+
+                if isinstance(delay, int):
+                    GLib.timeout_add(int(delay), self.run_next_command)
+                else:
+                    GLib.idle_add(self.run_next_command)
+            except StopIteration:
+                self.running_command = None
+        False # do not repeat
 
     def flush_output(self):
         """
-        Displays any pending output, if any. Each output is displayed in its own
+        Displays any pending output. Each output is displayed in its own
         text-view, so this will implicitly place a line break after the output.
         """
         words = self.game.extract_output()
@@ -197,7 +215,7 @@ class GameWindow(Gtk.Window):
         game = self.game
 
         if not game.game_over:
-            game.perform_occurances()
+            yield from game.perform_occurances()
             self.command_entry.grab_focus()
 
         self.flush_output()
@@ -221,30 +239,38 @@ class GameWindow(Gtk.Window):
         """Handles the save game button."""
         self.game.save_game()
 
-    def perform_command(self, cmd):
+    def trigger_command(self, cmd):
+        if self.running_command is None:
+            self.running_command = self.command_iter(cmd)
+            self.run_next_command()
+
+    def command_iter(self, cmd):
         game = self.game
         try:
             self.command_entry.set_text("")
             verb, noun = game.parse_command(cmd)
             game.output_line("> " + cmd)
             self.flush_output()
-            game.perform_command(verb, noun)
-            self.flush_output()
+            for x in game.perform_command(verb, noun):
+                yield x
+                self.flush_output()
+                self.update_room_view()
         except Exception as e:
             game.output(str(e))
             self.flush_output()
-        self.before_turn()
+        
+        yield from self.before_turn()
         
     def on_command_activate(self, data):
         """Handles a user-entered command when the user hits enter."""
         if not self.game.game_over:
             cmd = self.command_entry.get_text()
-            self.perform_command(cmd)
+            self.trigger_command(cmd)
 
     def on_score(self, data):
         """Generates the score command"""
         if not self.game.game_over:
-            self.perform_command("SCORE")
+            self.trigger_command("SCORE")
             
 seed()
 

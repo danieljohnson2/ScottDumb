@@ -1,5 +1,4 @@
 from execution import Occurance, Command, CommandContinuation
-from time import sleep
 
 class Game():
     """This is the root object containing the game state.
@@ -280,9 +279,9 @@ class Game():
             if self.continuing_commands:
                 if l.check_occurance():
                     self.continuing_commands = False
-                    l.execute()
+                    yield from l.execute()
             elif l.check_occurance():
-                l.execute()
+                yield from l.execute()
 
     def perform_command(self, verb, noun):
         """Executes a command given. Either verb or noun can be None.
@@ -291,7 +290,13 @@ class Game():
         some default verbs.
         """
 
-        halted = self.execute_command(self.commands, lambda l: l.check_command(verb, noun))
+        execution = self.execute_command(self.commands, lambda l: l.check_command(verb, noun))
+
+        halted = False
+        for x in execution:
+            yield x
+            halted = True
+        
         if halted: return
 
         if verb is None or verb == self.go_word:
@@ -326,20 +331,16 @@ class Game():
         none to execute.
         """
         self.continuing_commands = False
-        executed_any = False
-
+        
         for l in logics:
             if self.continuing_commands:
                 if l.is_continuation():
-                    if l.is_available(): l.execute()
+                    if l.is_available(): yield from l.execute()
                 else:
                     break
             elif checker(l):
-                executed_any = True
-                l.execute()
+                yield from l.execute()
                 if not self.continuing_commands: break
-
-        return executed_any
 
     def check_score(self):
         treasures_found = sum(1 for t in self.treasure_room.get_items() if t.is_treasure())
@@ -470,10 +471,6 @@ class Game():
     def get_load_game_path(self):
         """Provides the path to the file when loading the game; can return None to cancel."""
         return "scott.sav"
-
-    def sleep(self, seconds):
-        """This method waits for a number of seconds; you can override this to keep your GUI alive."""
-        sleep(seconds)
        
 class Word():
     """Represents a word in the vocabulary; these are interned, so duplicate

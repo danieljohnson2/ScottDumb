@@ -56,7 +56,7 @@ class Logic():
     def execute(self):
         """Runs the action. This applies changes to self.game."""
         for a in self.actions:
-                a()
+            yield a()
 
     def create_condition(self, op, val):
         """Returns a function (no arguments, returns a boolean) that
@@ -226,7 +226,7 @@ class Logic():
         if op == 87:
             saved_room_value = value_source()
             return swap_specific_loc
-        if op == 88: return lambda: game.sleep(2)
+        if op == 88: return lambda: 2000 # wait 2000 ms
         if op >= 102: return lambda: game.output_line(game.messages[op - 50])
         return undefined()
 
