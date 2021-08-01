@@ -262,14 +262,14 @@ class Command(Logic):
     def check_available_command(self, noun):
         return self.noun == noun and self.is_available()
         
-class CommandContinuation(Logic):
-    """These logics are weird. They are continuations of commands which
-    they follow. They run if a command executes the continue opcode, and
+class Continuation(Logic):
+    """These logics are weird. They are continuations of commands or occurances 
+    which they follow. They run if a command executes the continue opcode, and
     if their condiiton is also met."""
 
     def __init__(self, game, extracted_action):
         Logic.__init__(self, game, extracted_action)
-
+    
     def is_continuation(self):
         return True
 

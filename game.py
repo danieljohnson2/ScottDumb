@@ -1,4 +1,4 @@
-from execution import Occurance, Command, CommandContinuation
+from execution import Occurance, Command, Continuation
 
 class Game():
     """This is the root object containing the game state.
@@ -127,12 +127,21 @@ class Game():
 
         self.occurances = []
         self.commands = []
+
+        contining_action = True        
         for ea in extracted.actions:
             if ea.verb == 0:
-                if ea.noun == 0: self.commands.append(CommandContinuation(self, ea))
-                else: self.occurances.append(Occurance(self, ea))
+                if ea.noun == 0:
+                    if contining_action:
+                        self.commands.append(Continuation(self, ea))
+                    else:
+                        self.occurances.append(Continuation(self, ea))
+                else:
+                    self.occurances.append(Occurance(self, ea))
+                    contining_action = False
             else:
                 self.commands.append(Command(self, extracted, ea))
+                contining_action = True
 
         # try to assign command-words where we can find 'em, so items
         # you can't carry can still be clicked.
@@ -281,10 +290,12 @@ class Game():
         
         for l in self.occurances:
             if self.continuing_commands:
-                if l.check_occurance():
-                    self.continuing_commands = False
-                    yield from l.execute()
-            elif l.check_occurance():
+                if l.is_continuation():
+                    if l.is_available():
+                        yield from l.execute()
+                else:
+                    self.continuing_commands = False    
+            elif not l.is_continuation() and l.check_occurance():
                 yield from l.execute()
 
     def perform_command(self, verb, noun):
