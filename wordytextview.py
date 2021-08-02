@@ -1,4 +1,8 @@
 #!/usr/bin/python3
+from gi.repository import Pango
+from gi.repository import GLib
+from gi.repository import Gdk
+from gi.repository import Gtk
 from game import Game
 from extraction import ExtractedFile
 
@@ -7,18 +11,16 @@ from random import seed
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GLib
-from gi.repository import Pango
+
 
 class WordyTextView(Gtk.TextView):
     def __init__(self, game, perform_command, **kwargs):
         self.game = game
         self.perform_command = perform_command
-        self.words_by_tag = { }
+        self.words_by_tag = {}
         self.buffer = Gtk.TextBuffer()
-        Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, **kwargs)
+        Gtk.TextView.__init__(self, buffer=self.buffer,
+                              editable=False, **kwargs)
         self.set_wrap_mode(Gtk.WrapMode.WORD)
         self.connect("button-press-event", self.on_button_press_event)
         self.connect("motion-notify-event", self.on_motion_notify_event)
@@ -35,9 +37,10 @@ class WordyTextView(Gtk.TextView):
         active commands on any words, this will record takes for them and
         underline them so they can be handled.
         """
-        
+
         def get_tag(word):
-            if word.is_plain(self.game): return None
+            if word.is_plain(self.game):
+                return None
 
             if self.buffer in word.tags:
                 return word.tags[self.buffer]
@@ -48,7 +51,7 @@ class WordyTextView(Gtk.TextView):
                 self.words_by_tag[tag] = word
                 word.tags[self.buffer] = tag
                 return tag
-                
+
         words = list(words)
         while len(words) > 0 and words[0].is_newline():
             del words[0]
@@ -59,33 +62,37 @@ class WordyTextView(Gtk.TextView):
         iter = self.buffer.get_end_iter()
         word_index = 0
         for word in words:
-            if word_index > 0: self.buffer.insert(iter, " ")
+            if word_index > 0:
+                self.buffer.insert(iter, " ")
             tag = get_tag(word)
             if tag is None:
                 self.buffer.insert(iter, str(word))
             else:
                 self.buffer.insert_with_tags(iter, str(word), tag)
-            
-            if word.is_newline(): word_index = 0
-            else: word_index += 1
+
+            if word.is_newline():
+                word_index = 0
+            else:
+                word_index += 1
 
     def clear(self):
         """Clears the text from this view."""
-        
+
         start = self.buffer.get_start_iter()
         end = self.buffer.get_end_iter()
         self.buffer.delete(start, end)
-        
+
         tag_table = self.buffer.get_tag_table()
 
         for tag in self.words_by_tag:
             del self.words_by_tag[tag].tags[self.buffer]
-        self.words_by_tag = { }
+        self.words_by_tag = {}
 
         tag_table.foreach(lambda tag: tag_table.remove(tag))
 
     def on_motion_notify_event(self, text_view, event):
-        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+        x, y = self.window_to_buffer_coords(
+            Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = self.get_iter_at_location(x, y)
         if found and len(i.get_tags()) > 0:
             cursor_name = "pointer"
@@ -95,7 +102,7 @@ class WordyTextView(Gtk.TextView):
         w = self.get_window(Gtk.TextWindowType.TEXT)
         cursor = Gdk.Cursor.new_from_name(w.get_display(), cursor_name)
         w.set_cursor(cursor)
-            
+
     def on_button_press_event(self, text_view, event):
 
         def create_menu(commands):
@@ -106,8 +113,9 @@ class WordyTextView(Gtk.TextView):
                 menu.append(item)
                 item.connect("activate", self.on_menu_item_activate, cmd)
             return menu
-            
-        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+
+        x, y = self.window_to_buffer_coords(
+            Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = self.get_iter_at_location(x, y)
         if found:
             for t in i.get_tags():

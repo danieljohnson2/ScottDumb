@@ -1,19 +1,23 @@
 from random import randint
 from time import sleep
 
+
 class Logic():
     """This class contains the actual opcodes to execute for the game.
 
     Subclasses override methods to control when this can execute, but the
     actual execution is all here.
     """
+
     def __init__(self, game, extracted_action):
         self.game = game
         self.conditions = []
         args = []
         for val, op in extracted_action.conditions:
-            if op == 0: args.append(val)
-            else: self.conditions.append(self.create_condition(op, val))
+            if op == 0:
+                args.append(val)
+            else:
+                self.conditions.append(self.create_condition(op, val))
 
         def get_arg():
             val = args[0]
@@ -23,7 +27,7 @@ class Logic():
         self.actions = []
         for op in extracted_action.actions:
             self.actions.append(self.create_action(op, get_arg))
-    
+
     def is_available(self):
         """Runs conditions for the logic; returns true if this logic can execute."""
         for c in self.conditions:
@@ -70,26 +74,44 @@ class Logic():
 
         game = self.game
 
-        if op == 1: return lambda: game.items[val].room == game.inventory
-        if op == 2: return lambda: game.items[val].room == game.player_room
-        if op == 3: return lambda: game.items[val].room in [game.player_room, game.inventory]
-        if op == 4: return lambda: game.player_room == game.rooms[val]
-        if op == 5: return lambda: game.items[val].room != game.player_room
-        if op == 6: return lambda: game.items[val].room != game.inventory
-        if op == 7: return lambda: game.player_room != game.rooms[val]
-        if op == 8: return lambda: game.flags[val].state
-        if op == 9: return lambda: not game.flags[val].state
-        if op == 10: return lambda: len(game.inventory.get_items()) > 0
-        if op == 11: return lambda: len(game.inventory.get_items()) == 0
+        if op == 1:
+            return lambda: game.items[val].room == game.inventory
+        if op == 2:
+            return lambda: game.items[val].room == game.player_room
+        if op == 3:
+            return lambda: game.items[val].room in [game.player_room, game.inventory]
+        if op == 4:
+            return lambda: game.player_room == game.rooms[val]
+        if op == 5:
+            return lambda: game.items[val].room != game.player_room
+        if op == 6:
+            return lambda: game.items[val].room != game.inventory
+        if op == 7:
+            return lambda: game.player_room != game.rooms[val]
+        if op == 8:
+            return lambda: game.flags[val].state
+        if op == 9:
+            return lambda: not game.flags[val].state
+        if op == 10:
+            return lambda: len(game.inventory.get_items()) > 0
+        if op == 11:
+            return lambda: len(game.inventory.get_items()) == 0
         if op == 12:
-                return lambda: game.items[val].room not in [game.player_room, game.inventory]
-        if op == 13: return lambda: game.items[val].room != None
-        if op == 14: return lambda: game.items[val].room == None
-        if op == 15: return lambda: game.counter.value <= val
-        if op == 16: return lambda: game.counter.value > val
-        if op == 17: return lambda: game.items[val].room == game.items[val].starting_room
-        if op == 18: return lambda: game.items[val].room != game.items[val].starting_room
-        if op == 19: return lambda: game.counter.value == val
+            return lambda: game.items[val].room not in [game.player_room, game.inventory]
+        if op == 13:
+            return lambda: game.items[val].room != None
+        if op == 14:
+            return lambda: game.items[val].room == None
+        if op == 15:
+            return lambda: game.counter.value <= val
+        if op == 16:
+            return lambda: game.counter.value > val
+        if op == 17:
+            return lambda: game.items[val].room == game.items[val].starting_room
+        if op == 18:
+            return lambda: game.items[val].room != game.items[val].starting_room
+        if op == 19:
+            return lambda: game.counter.value == val
         return undefined()
 
     def create_action(self, op, value_source):
@@ -103,10 +125,10 @@ class Logic():
 
         game = self.game
 
-        def clear_screen(): pass # we don't do this
+        def clear_screen(): pass  # we don't do this
 
         def get_item(): game.get_item(item)
-        def superget_item(): game.get_item(item, force = True)
+        def superget_item(): game.get_item(item, force=True)
         def drop_item(): game.drop_item(item)
         def move_item(): game.move_item(item, room)
         def remove_item(): game.move_item(item, None)
@@ -114,6 +136,7 @@ class Logic():
         def put_item_with(): game.move_item(item1, item2.room)
 
         def move_player(): game.move_player(room)
+
         def swap_loc():
             saved_player_room = game.saved_player_room
             game.saved_player_room = game.player_room
@@ -132,13 +155,16 @@ class Logic():
         def die():
             game.move_player(game.rooms[len(game.rooms) - 1])
             game.dark_flag.state = False
+
         def game_over(): game.game_over = True
-        def check_score() : game.check_score()
+        def check_score(): game.check_score()
         def save_game(): game.save_game()
         def describe_room(): game.needs_room_update = True
+
         def refill_lamp():
             game.light_remaining = game.light_duration
             game.move_item(game.lamp_item, game.inventory)
+
         def swap_specific_loc():
             saved_player_room = game.saved_player_rooms[saved_room_value]
             game.saved_player_rooms[saved_room_value] = game.player_room
@@ -148,8 +174,10 @@ class Logic():
 
         def undefined(): raise ValueError(f"Undefined action op: {op}")
 
-        if op == 0: return lambda: None
-        if op <= 51: return lambda: game.output_line(game.messages[op])
+        if op == 0:
+            return lambda: None
+        if op <= 51:
+            return lambda: game.output_line(game.messages[op])
         if op == 52:
             item = game.items[value_source()]
             return get_item
@@ -174,29 +202,38 @@ class Logic():
         if op == 60:
             flag = game.flags[value_source()]
             return reset_flag
-        if op == 61: return die
+        if op == 61:
+            return die
         if op == 62:
             item = game.items[value_source()]
             room = game.rooms[value_source()]
             return move_item
-        if op == 63: return game_over
-        if op == 64 or op == 76: return describe_room
-        if op == 65: return check_score
-        if op == 66: return lambda: game.output_inventory_text()
+        if op == 63:
+            return game_over
+        if op == 64 or op == 76:
+            return describe_room
+        if op == 65:
+            return check_score
+        if op == 66:
+            return lambda: game.output_inventory_text()
         if op == 67:
             flag = game.flags[0]
             return set_flag
         if op == 68:
             flag = game.flags[0]
             return reset_flag
-        if op == 69: return refill_lamp
-        if op == 70: return clear_screen
-        if op == 71: return save_game
+        if op == 69:
+            return refill_lamp
+        if op == 70:
+            return clear_screen
+        if op == 71:
+            return save_game
         if op == 72:
             item1 = game.items[value_source()]
             item2 = game.items[value_source()]
             return swap_items
-        if op == 73: return continue_actions
+        if op == 73:
+            return continue_actions
         if op == 74:
             item = game.items[value_source()]
             return superget_item
@@ -204,8 +241,10 @@ class Logic():
             item1 = game.items[value_source()]
             item2 = game.items[value_source()]
             return put_item_with
-        if op == 77: return decrement_counter
-        if op == 78: return print_counter
+        if op == 77:
+            return decrement_counter
+        if op == 78:
+            return print_counter
         if op == 79:
             counter_value = value_source()
             return set_counter
@@ -220,15 +259,21 @@ class Logic():
         if op == 83:
             counter_value = value_source()
             return subtract_counter
-        if op == 84: return lambda: game.output(game.parsed_noun)
-        if op == 85: return lambda: game.output_line(game.parsed_noun)
-        if op == 86: return lambda: game.output_line()
+        if op == 84:
+            return lambda: game.output(game.parsed_noun)
+        if op == 85:
+            return lambda: game.output_line(game.parsed_noun)
+        if op == 86:
+            return lambda: game.output_line()
         if op == 87:
             saved_room_value = value_source()
             return swap_specific_loc
-        if op == 88: return lambda: DelayRequest(2000)
-        if op >= 102: return lambda: game.output_line(game.messages[op - 50])
+        if op == 88:
+            return lambda: DelayRequest(2000)
+        if op >= 102:
+            return lambda: game.output_line(game.messages[op - 50])
         return undefined()
+
 
 class Occurance(Logic):
     """These logics run before user input, and let the game take actions
@@ -243,6 +288,7 @@ class Occurance(Logic):
     def check_occurance(self):
         return self.is_available() and randint(1, 100) <= self.chance
 
+
 class Command(Logic):
     """These logics handle specific user commands."""
 
@@ -251,7 +297,8 @@ class Command(Logic):
         verb_index = extracted_action.verb
         noun_index = extracted_action.noun
         self.verb = game.get_verb(extracted.verbs[verb_index])
-        self.noun = game.get_noun(extracted.nouns[noun_index]) if noun_index > 0 else None
+        self.noun = game.get_noun(
+            extracted.nouns[noun_index]) if noun_index > 0 else None
 
     def check_command(self, verb, noun):
         if self.verb == verb:
@@ -261,7 +308,8 @@ class Command(Logic):
 
     def check_available_command(self, noun):
         return self.noun == noun and self.is_available()
-        
+
+
 class Continuation(Logic):
     """These logics are weird. They are continuations of commands or occurances 
     which they follow. They run if a command executes the continue opcode, and
@@ -269,13 +317,15 @@ class Continuation(Logic):
 
     def __init__(self, game, extracted_action):
         Logic.__init__(self, game, extracted_action)
-    
+
     def is_continuation(self):
         return True
+
 
 class DelayRequest():
     """This object represents a request for the UI to pause
     before proceeding to the next command. This can be
     returned from the command execute() method."""
+
     def __init__(self, milliseconds):
         self.milliseconds = milliseconds

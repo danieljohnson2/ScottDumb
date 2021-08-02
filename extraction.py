@@ -19,7 +19,7 @@ class ExtractedFile():
     """
 
     def __init__(self, file):
-        read_num(file) # unknown value
+        read_num(file)  # unknown value
         max_item_index = read_num(file)
         max_action_index = read_num(file)
         max_word_index = read_num(file)
@@ -34,7 +34,7 @@ class ExtractedFile():
 
         self.actions = []
         for i in range(0, max_action_index+1):
-                self.actions.append(ExtractedAction(file))
+            self.actions.append(ExtractedAction(file))
 
         self.verbs = []
         self.nouns = []
@@ -58,7 +58,8 @@ class ExtractedFile():
 
         for a in self.actions:
             a.comment = read_string(file).strip()
-        
+
+
 class ExtractedAction():
     """Contains the bytecode for a unit of game logic.
 
@@ -88,6 +89,7 @@ class ExtractedAction():
         ]
         self.actions = [s for a in action_nums for s in split_number(a, 150)]
 
+
 class ExtractedRoom():
     """Contains the data for a room.
 
@@ -109,6 +111,7 @@ class ExtractedRoom():
         self.down = read_num(file)
         self.description = read_string(file)
 
+
 class ExtractedItem():
     """Contains the data for an item.
 
@@ -117,22 +120,27 @@ class ExtractedItem():
     carry_word - word used to refer to this item when getting or
                  dropping it; if None item can't be carried.
     """
+
     def __init__(self, file):
         self.description, extra = read_string_plus(file)
         self.starting_room = int(extra)
         self.carry_word = None
 
         if self.description.endswith("/"):
-            wordstart = self.description.rfind("/", 0, len(self.description) - 1)
-            self.carry_word = self.description[wordstart + 1:len(self.description) - 1]
+            wordstart = self.description.rfind(
+                "/", 0, len(self.description) - 1)
+            self.carry_word = self.description[wordstart +
+                                               1:len(self.description) - 1]
             self.description = self.description[:wordstart]
 
 # Utility Functions
+
 
 def read_num(file):
     """Reads a line from 'file', converting it to an integer."""
     line = file.readline()
     return int(line)
+
 
 def read_string_plus(file):
     """Reads a string from 'file', which can be a multi-line string. It must be
@@ -148,12 +156,13 @@ def read_string_plus(file):
     extra = ""
     while True:
         line = file.readline()
-        if line == "": break
-        
+        if line == "":
+            break
+
         if len(buffer) == 0:
-            if line[0] == "\"": # remove opening quote
+            if line[0] == "\"":  # remove opening quote
                 line = line[1:]
-            else: # did not start with opening quote?
+            else:  # did not start with opening quote?
                 raise ValueError(f"'{line}' is not a string.")
 
         endquotepos = line.rfind("\"")
@@ -161,14 +170,16 @@ def read_string_plus(file):
             buffer.append(line)
         else:
             buffer.append(line[:endquotepos])
-            extra = line[endquotepos+1:]                
+            extra = line[endquotepos+1:]
             break
 
     return ("".join(buffer), extra)
 
+
 def read_string(file):
     """Reads a string from the file, discarding any extra text after it on its last line."""
     return read_string_plus(file)[0]
+
 
 def split_number(number, multiplier):
     """Decodes a number into two. The number = high * multiplier + low, and
@@ -178,6 +189,7 @@ def split_number(number, multiplier):
     low = int(number % multiplier)
     high = int(number / multiplier)
     return (high, low)
+
 
 def group_words(words):
     """Takes a list of words, and groups them, returning a list-of-lists.
@@ -191,10 +203,13 @@ def group_words(words):
     grouped = []
     buffer = []
     for word in words:
-        if word not in (".", "*."): # This must be the padding, I think
-            if word == "": pass
-            elif word[0] == "*": buffer.append(word[1:])
-            elif len(buffer) == 0: buffer.append(word)
+        if word not in (".", "*."):  # This must be the padding, I think
+            if word == "":
+                pass
+            elif word[0] == "*":
+                buffer.append(word[1:])
+            elif len(buffer) == 0:
+                buffer.append(word)
             else:
                 grouped.append(buffer)
                 buffer = [word]
@@ -203,4 +218,3 @@ def group_words(words):
         grouped.append(buffer)
 
     return grouped
-

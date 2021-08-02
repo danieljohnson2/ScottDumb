@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+from gi.repository import GLib
+from gi.repository import Gdk
+from gi.repository import Gtk
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
@@ -10,9 +13,7 @@ from random import seed
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-from gi.repository import Gdk
-from gi.repository import GLib
+
 
 def make_filter(name, pattern):
     """Builds a GTK file-filter conveniently."""
@@ -21,14 +22,16 @@ def make_filter(name, pattern):
     f.add_pattern(pattern)
     return f
 
+
 @contextmanager
 def filechooser(window, title, action):
     dlg = Gtk.FileChooserDialog(title="Game", action=action,
-        transient_for=window)
+                                transient_for=window)
     try:
         yield dlg
     finally:
         dlg.destroy()
+
 
 @contextmanager
 def error_alert(window, text):
@@ -42,6 +45,7 @@ def error_alert(window, text):
     finally:
         dlg.destroy()
 
+
 def get_game_path():
     with filechooser(None, "Game", Gtk.FileChooserAction.OPEN) as dlg:
         dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
@@ -49,14 +53,16 @@ def get_game_path():
         dlg.set_default_response(Gtk.ResponseType.OK)
         dlg.add_filter(make_filter("Games", "*.dat"))
         dlg.add_filter(make_filter("All Files", "*"))
-        
+
         if (dlg.run() == Gtk.ResponseType.OK):
             return dlg.get_filename()
         else:
             return None
-    
+
+
 class GuiGame(Game):
     """This game subclass uses file chooser dialogs to prompt for save or load file names."""
+
     def __init__(self, extracted_game, window):
         Game.__init__(self, extracted_game)
         self.window = window
@@ -68,12 +74,12 @@ class GuiGame(Game):
             dlg.set_default_response(Gtk.ResponseType.OK)
             dlg.add_filter(make_filter("Saved Games", "*.sav"))
             dlg.add_filter(make_filter("All Files", "*"))
-        
+
             if (dlg.run() == Gtk.ResponseType.OK):
                 return dlg.get_filename()
             else:
                 return None
-        
+
     def get_load_game_path(self):
         with filechooser(self.window, "Load Game", Gtk.FileChooserAction.OPEN) as dlg:
             dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
@@ -81,11 +87,12 @@ class GuiGame(Game):
             dlg.set_default_response(Gtk.ResponseType.OK)
             dlg.add_filter(make_filter("Saved Games", "*.sav"))
             dlg.add_filter(make_filter("All Files", "*"))
-        
+
             if (dlg.run() == Gtk.ResponseType.OK):
                 return dlg.get_filename()
             else:
                 return None
+
 
 class GameWindow(Gtk.Window):
     """
@@ -96,14 +103,14 @@ class GameWindow(Gtk.Window):
 
     def __init__(self, game_file):
         Gtk.Window.__init__(self)
-        
+
         with open(game_file, "r") as f:
             self.game = GuiGame(ExtractedFile(f), self)
 
         self.header_bar = Gtk.HeaderBar()
         self.header_bar.set_title("Scott Dumb")
         self.header_bar.set_show_close_button(True)
-    
+
         self.load_button = Gtk.Button(label="_Load", use_underline=True)
         self.load_button.connect("clicked", self.on_load_game)
         self.header_bar.pack_start(self.load_button)
@@ -115,23 +122,26 @@ class GameWindow(Gtk.Window):
         self.set_titlebar(self.header_bar)
 
         self.room_view = WordyTextView(self.game, self.queue_command)
-        self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
-        
+        self.room_view.connect(
+            "size-allocate", self.on_room_view_size_allocate)
+
         self.script_view = WordyTextView(self.game, self.queue_command)
-        
-        self.inventory_view = WordyTextView(self.game, self.queue_command, width_request=300)
-        
+
+        self.inventory_view = WordyTextView(
+            self.game, self.queue_command, width_request=300)
+
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
-       
-        self.command_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
-        
+
+        self.command_box = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+
         command_label = Gtk.Label(label=">")
         command_label.set_margin_start(5)
         self.command_entry = Gtk.Entry()
         self.command_entry.connect("activate", self.on_command_activate)
-        
+
         score_button = Gtk.Button(label="_Score", use_underline=True)
         score_button.connect("clicked", self.on_score)
         score_button.set_margin_end(5)
@@ -143,9 +153,10 @@ class GameWindow(Gtk.Window):
         vBox.pack_end(self.command_box, False, False, 5)
 
         self.scroller = Gtk.ScrolledWindow()
-        self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.scroller.set_policy(Gtk.PolicyType.NEVER,
+                                 Gtk.PolicyType.AUTOMATIC)
         self.scroller.add(self.script_view)
-        
+
         hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         hBox.pack_start(self.scroller, True, True, 0)
         hBox.pack_start(Gtk.Separator(), False, False, 0)
@@ -172,7 +183,7 @@ class GameWindow(Gtk.Window):
             self.script_view.append_line()
             self.script_view.append_words(words)
             self.scroll_to_bottom()
-            
+
     def scroll_to_bottom(self):
         """Scrolls the output window as far down as possible."""
         def do_scroll():
@@ -183,7 +194,7 @@ class GameWindow(Gtk.Window):
         # Scrolling may fail because the wigdets are not laid out yet;
         # so this will try to do it again a little later.
         GLib.idle_add(do_scroll)
-        
+
     def update_room_view(self):
         """
         Generate the room description text afresh and displays it. The previous
@@ -204,12 +215,12 @@ class GameWindow(Gtk.Window):
         words = self.game.get_inventory_words()
         self.inventory_view.clear()
         self.inventory_view.append_words(words)
-        
+
     def before_turn(self):
         """
         Performs game logic that should happen before user commands are accepted.
         This flushes output and updates the room view.
-        """        
+        """
         game = self.game
 
         if not game.game_over:
@@ -238,9 +249,10 @@ class GameWindow(Gtk.Window):
     def on_save_game(self, data):
         if self.running_iter is not None:
             with error_alert(selk, "You cannot save now.") as dlg:
-                dlg.format_secondary_text("You cannot save the game while game actions are happening.")
+                dlg.format_secondary_text(
+                    "You cannot save the game while game actions are happening.")
             return
-            
+
         """Handles the save game button."""
         self.game.save_game()
 
@@ -281,7 +293,7 @@ class GameWindow(Gtk.Window):
         except Exception as e:
             game.output(str(e))
             self.flush_output()
-        
+
         yield from self.before_turn()
 
     def run_next_command(self):
@@ -298,7 +310,8 @@ class GameWindow(Gtk.Window):
                 while True:
                     request = next(self.running_iter)
                     if isinstance(request, DelayRequest):
-                        GLib.timeout_add(request.milliseconds, self.run_next_command)
+                        GLib.timeout_add(request.milliseconds,
+                                         self.run_next_command)
                         break
             except StopIteration:
                 self.running_iter = None
@@ -311,7 +324,7 @@ class GameWindow(Gtk.Window):
                 game.output(str(e))
         self.flush_output()
         self.update_room_view()
-        False # do not repeat
+        False  # do not repeat
 
     def on_command_activate(self, data):
         """Handles a user-entered command when the user hits enter."""
@@ -323,7 +336,8 @@ class GameWindow(Gtk.Window):
         """Generates the score command"""
         if not self.game.game_over:
             self.queue_command("SCORE")
-            
+
+
 seed()
 
 if len(argv) >= 2:
