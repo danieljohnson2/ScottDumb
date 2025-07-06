@@ -1,16 +1,13 @@
 #!/usr/bin/python3
+from sys import argv
+from random import seed
+
 from gi.repository import Pango
 from gi.repository import GLib
 from gi.repository import Gdk
 from gi.repository import Gtk
 from game import Game
 from extraction import ExtractedFile
-
-from sys import argv
-from random import seed
-
-import gi
-gi.require_version('Gtk', '3.0')
 
 
 class WordyTextView(Gtk.TextView):
@@ -19,8 +16,7 @@ class WordyTextView(Gtk.TextView):
         self.perform_command = perform_command
         self.words_by_tag = {}
         self.buffer = Gtk.TextBuffer()
-        Gtk.TextView.__init__(self, buffer=self.buffer,
-                              editable=False, **kwargs)
+        Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, **kwargs)
         self.set_wrap_mode(Gtk.WrapMode.WORD)
         self.connect("button-press-event", self.on_button_press_event)
         self.connect("motion-notify-event", self.on_motion_notify_event)
@@ -91,8 +87,7 @@ class WordyTextView(Gtk.TextView):
         tag_table.foreach(lambda tag: tag_table.remove(tag))
 
     def on_motion_notify_event(self, text_view, event):
-        x, y = self.window_to_buffer_coords(
-            Gtk.TextWindowType.TEXT, event.x, event.y)
+        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = self.get_iter_at_location(x, y)
         if found and len(i.get_tags()) > 0:
             cursor_name = "pointer"
@@ -104,7 +99,6 @@ class WordyTextView(Gtk.TextView):
         w.set_cursor(cursor)
 
     def on_button_press_event(self, text_view, event):
-
         def create_menu(commands):
             menu = Gtk.Menu()
             menu.attach_to_widget(self)
@@ -114,8 +108,7 @@ class WordyTextView(Gtk.TextView):
                 item.connect("activate", self.on_menu_item_activate, cmd)
             return menu
 
-        x, y = self.window_to_buffer_coords(
-            Gtk.TextWindowType.TEXT, event.x, event.y)
+        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
         found, i = self.get_iter_at_location(x, y)
         if found:
             for t in i.get_tags():

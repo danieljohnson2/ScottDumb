@@ -1,4 +1,9 @@
 #!/usr/bin/python3
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("Gdk", "3.0")
+
 from gi.repository import GLib
 from gi.repository import Gdk
 from gi.repository import Gtk
@@ -11,9 +16,6 @@ from contextlib import contextmanager
 from sys import argv
 from random import seed
 
-import gi
-gi.require_version('Gtk', '3.0')
-
 
 def make_filter(name, pattern):
     """Builds a GTK file-filter conveniently."""
@@ -25,8 +27,7 @@ def make_filter(name, pattern):
 
 @contextmanager
 def filechooser(window, title, action):
-    dlg = Gtk.FileChooserDialog(title="Game", action=action,
-                                transient_for=window)
+    dlg = Gtk.FileChooserDialog(title="Game", action=action, transient_for=window)
     try:
         yield dlg
     finally:
@@ -39,7 +40,8 @@ def error_alert(window, text):
         transient_for=self,
         message_type=Gtk.MessageType.ERROR,
         buttons=Gtk.ButtonsType.CANCEL,
-        text=text)
+        text=text,
+    )
     try:
         yield dlg
     finally:
@@ -54,7 +56,7 @@ def get_game_path():
         dlg.add_filter(make_filter("Games", "*.dat"))
         dlg.add_filter(make_filter("All Files", "*"))
 
-        if (dlg.run() == Gtk.ResponseType.OK):
+        if dlg.run() == Gtk.ResponseType.OK:
             return dlg.get_filename()
         else:
             return None
@@ -75,7 +77,7 @@ class GuiGame(Game):
             dlg.add_filter(make_filter("Saved Games", "*.sav"))
             dlg.add_filter(make_filter("All Files", "*"))
 
-            if (dlg.run() == Gtk.ResponseType.OK):
+            if dlg.run() == Gtk.ResponseType.OK:
                 return dlg.get_filename()
             else:
                 return None
@@ -88,7 +90,7 @@ class GuiGame(Game):
             dlg.add_filter(make_filter("Saved Games", "*.sav"))
             dlg.add_filter(make_filter("All Files", "*"))
 
-            if (dlg.run() == Gtk.ResponseType.OK):
+            if dlg.run() == Gtk.ResponseType.OK:
                 return dlg.get_filename()
             else:
                 return None
@@ -122,20 +124,19 @@ class GameWindow(Gtk.Window):
         self.set_titlebar(self.header_bar)
 
         self.room_view = WordyTextView(self.game, self.queue_command)
-        self.room_view.connect(
-            "size-allocate", self.on_room_view_size_allocate)
+        self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
 
         self.script_view = WordyTextView(self.game, self.queue_command)
 
         self.inventory_view = WordyTextView(
-            self.game, self.queue_command, width_request=300)
+            self.game, self.queue_command, width_request=300
+        )
 
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         vBox.pack_start(self.room_view, False, False, 0)
         vBox.pack_start(Gtk.Separator(), False, False, 0)
 
-        self.command_box = Gtk.Box(
-            orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.command_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
 
         command_label = Gtk.Label(label=">")
         command_label.set_margin_start(5)
@@ -153,8 +154,7 @@ class GameWindow(Gtk.Window):
         vBox.pack_end(self.command_box, False, False, 5)
 
         self.scroller = Gtk.ScrolledWindow()
-        self.scroller.set_policy(Gtk.PolicyType.NEVER,
-                                 Gtk.PolicyType.AUTOMATIC)
+        self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self.scroller.add(self.script_view)
 
         hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -186,6 +186,7 @@ class GameWindow(Gtk.Window):
 
     def scroll_to_bottom(self):
         """Scrolls the output window as far down as possible."""
+
         def do_scroll():
             adj = self.scroller.get_vadjustment()
             adj.set_value(adj.get_upper())
@@ -250,7 +251,8 @@ class GameWindow(Gtk.Window):
         if self.running_iter is not None:
             with error_alert(selk, "You cannot save now.") as dlg:
                 dlg.format_secondary_text(
-                    "You cannot save the game while game actions are happening.")
+                    "You cannot save the game while game actions are happening."
+                )
             return
 
         """Handles the save game button."""
@@ -310,13 +312,15 @@ class GameWindow(Gtk.Window):
                 while True:
                     request = next(self.running_iter)
                     if isinstance(request, DelayRequest):
-                        GLib.timeout_add(request.milliseconds,
-                                         self.run_next_command)
+                        GLib.timeout_add(request.milliseconds, self.run_next_command)
                         break
             except StopIteration:
                 self.running_iter = None
 
-                if self.pending_command is not None and self.pending_command == self.command_entry.get_text():
+                if (
+                    self.pending_command is not None
+                    and self.pending_command == self.command_entry.get_text()
+                ):
                     cmd = self.pending_command
                     self.pending_command = None
                     self.queue_command(cmd)
