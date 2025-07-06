@@ -37,7 +37,7 @@ def _file_dialog_open_async(dlg, parent):
             file = dlg.open_finish(result)
             ended.set_result(file)
         except GLib.GError as err:
-            if err.domain == 'gtk-dialog-error-quark' and err.code ==2:
+            if err.domain == "gtk-dialog-error-quark" and err.code == 2:
                 ended.set_result(None)
             else:
                 ended.set_exception(err)
@@ -46,7 +46,25 @@ def _file_dialog_open_async(dlg, parent):
     return ended
 
 
+def _file_dialog_save_async(dlg, parent):
+    ended = loop.create_future()
+
+    def on_ready(dlg, result):
+        try:
+            file = dlg.save_finish(result)
+            ended.set_result(file)
+        except GLib.GError as err:
+            if err.domain == "gtk-dialog-error-quark" and err.code == 2:
+                ended.set_result(None)
+            else:
+                ended.set_exception(err)
+
+    dlg.save(parent, None, on_ready)
+    return ended
+
+
 Gtk.FileDialog.open_async = _file_dialog_open_async
+Gtk.FileDialog.save_async = _file_dialog_save_async
 
 
 @contextmanager
@@ -87,31 +105,31 @@ class GuiGame(Game):
         self.window.flush_output()
         self.window.update_room_view()
 
-    def get_save_game_path(self):
-        with filechooser(self.window, "Save Game", Gtk.FileChooserAction.SAVE) as dlg:
-            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-            dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-            dlg.set_default_response(Gtk.ResponseType.OK)
-            dlg.add_filter(make_filter("Saved Games", "*.sav"))
-            dlg.add_filter(make_filter("All Files", "*"))
+    async def get_save_game_path(self):
+        dlg = Gtk.FileDialog(title="Save Game")
+        dlg.set_accept_label("Save")
+        filters = Gio.ListStore()
+        filters.append(make_filter("Saved Games", "*.sav"))
+        filters.append(make_filter("All Files", "*"))
+        dlg.set_filters(filters)
+        file = await dlg.save_async(None)
+        if file:
+            return file.get_path()
+        else:
+            return None
 
-            if dlg.run() == Gtk.ResponseType.OK:
-                return dlg.get_filename()
-            else:
-                return None
-
-    def get_load_game_path(self):
-        with filechooser(self.window, "Load Game", Gtk.FileChooserAction.OPEN) as dlg:
-            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-            dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-            dlg.set_default_response(Gtk.ResponseType.OK)
-            dlg.add_filter(make_filter("Saved Games", "*.sav"))
-            dlg.add_filter(make_filter("All Files", "*"))
-
-            if dlg.run() == Gtk.ResponseType.OK:
-                return dlg.get_filename()
-            else:
-                return None
+    async def get_load_game_path(self):
+        dlg = Gtk.FileDialog(title="Save Game")
+        dlg.set_accept_label("Load")
+        filters = Gio.ListStore()
+        filters.append(make_filter("Saved Games", "*.sav"))
+        filters.append(make_filter("All Files", "*"))
+        dlg.set_filters(filters)
+        file = await dlg.open_async(None)
+        if file:
+            return file.get_path()
+        else:
+            return None
 
 
 class GameWindow(Gtk.Window):
@@ -277,8 +295,11 @@ class GameWindow(Gtk.Window):
 
     def on_load_game(self, data):
         """Handles the load game button."""
+        asyncio.get_running_loop().create_task(self.do_on_load_game(data))
+
+    async def do_on_load_game(self, data):
         game = self.game
-        if game.load_game():
+        if await game.load_game():
             self.pending_command = None
             self.running_task = None
             game.extract_output()
@@ -289,6 +310,7 @@ class GameWindow(Gtk.Window):
             self.command_entry.grab_focus()
 
     def on_save_game(self, data):
+        """Handles the save game button."""
         if self.running_task is not None:
             with error_alert(self, "You cannot save now.") as dlg:
                 dlg.format_secondary_text(
@@ -296,8 +318,7 @@ class GameWindow(Gtk.Window):
                 )
             return
 
-        """Handles the save game button."""
-        self.game.save_game()
+        asyncio.get_running_loop().create_task(self.game.save_game())
 
     # Command handling
 

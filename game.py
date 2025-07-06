@@ -449,13 +449,13 @@ class Game:
         item2.room = tmp
         self.wants_room_update = True
 
-    def save_game(self):
+    async def save_game(self):
         """Saves the game to the file named using the ScottFree format."""
 
         def get_room_index(r):
             return 0 if r is None else r.index
 
-        path = self.get_save_game_path()
+        path = await self.get_save_game_path()
         if path is None:
             return
 
@@ -481,11 +481,11 @@ class Game:
             for item in self.items:
                 file.write(f"{get_room_index(item.room)}\n")
 
-    def get_save_game_path(self):
+    async def get_save_game_path(self):
         """Provides the path to the file when saving the game; can return None to cancel."""
         return "scott.sav"
 
-    def load_game(self):
+    async def load_game(self):
         """
         Loads the game from the file named, which is in the ScottFree format.
         Returns True if the game was loaded, and False if this was cancelled.
@@ -499,7 +499,7 @@ class Game:
             else:
                 return self.rooms[index]
 
-        path = self.get_load_game_path()
+        path = await self.get_load_game_path()
         if path is None:
             return False
 
@@ -528,7 +528,7 @@ class Game:
         self.needs_room_update = True
         return True
 
-    def get_load_game_path(self):
+    async def get_load_game_path(self):
         """Provides the path to the file when loading the game; can return None to cancel."""
         return "scott.sav"
 

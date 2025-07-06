@@ -98,8 +98,9 @@ class WordyTextView(Gtk.TextView):
         cursor = Gdk.Cursor.new_from_name(w.get_display(), cursor_name)
         w.set_cursor(cursor)
 
-    def on_button_press_event(self, _click, count, click_x, click_y):
-        _click.set_state(Gtk.EventSequenceState.CLAIMED)
+    def on_button_press_event(self, click, count, click_x, click_y):
+        click.set_state(Gtk.EventSequenceState.CLAIMED)
+
         if count != 1:
             return
 
@@ -137,4 +138,4 @@ class WordyTextView(Gtk.TextView):
                     where = Gdk.Rectangle.union(start_where, end_where)
                     menu.set_pointing_to(where)
                     menu.popup()
-                    _click.stop_emission_by_name("pressed")()
+                    # click.stop_emission_by_name("pressed")
