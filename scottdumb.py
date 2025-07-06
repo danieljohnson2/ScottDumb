@@ -361,10 +361,13 @@ def on_activate(*args):
     else:
         game_path = get_game_path()
 
-    seed()
-    win = GameWindow(game_path)
-    win.connect("delete-event", lambda *x: asyncio.get_running_loop().stop())
-    win.show_all()
+    if game_path:
+        seed()
+        win = GameWindow(game_path)
+        win.connect("delete-event", lambda *x: asyncio.get_running_loop().stop())
+        win.show_all()
+    else:
+        loop.stop()
 
 
 async def start():
