@@ -11,7 +11,7 @@ class WordyTextView(Gtk.TextView):
         self.perform_command = perform_command
         self.words_by_tag = {}
         self.buffer = Gtk.TextBuffer()
-        Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, **kwargs)
+        Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, cursor_visible=False, **kwargs)
         self.set_wrap_mode(Gtk.WrapMode.WORD)
 
         click_gesture = Gtk.GestureClick(button=0)
