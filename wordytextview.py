@@ -110,10 +110,14 @@ class WordyTextView(Gtk.TextView):
         def create_menu(commands):
             menu = Gtk.Popover()
             vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            vbox.set_spacing(3)
             menu.set_parent(self)
             menu.set_child(vbox)
             for cmd in commands:
                 item = Gtk.Button(label=cmd)
+                style_context = item.get_style_context()
+                style_context.add_class("flat")
+                style_context.add_class("menu-button")                
                 vbox.append(item)
                 item.connect("clicked", on_menu_item_clicked, cmd)
             return menu

@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 import gi
 import asyncio
+import sys
+import os
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 
-from gi.repository import GLib, Gtk, Gio
+from gi.repository import GLib, Gtk, Gdk, Gio
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
@@ -405,7 +407,15 @@ async def start_game():
 
     if game_path:
         seed()
+        path = os.path.dirname(__file__)
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_path(os.path.join(path, "scottdumb.css"))
         win = GameWindow(game_path)
+        display = Gdk.Display.get_default()
+        Gtk.StyleContext.add_provider_for_display(
+            display, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
         win.connect("close-request", lambda *x: asyncio.get_running_loop().stop())
         win.set_visible(True)
     else:
