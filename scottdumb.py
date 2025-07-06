@@ -243,8 +243,11 @@ class GameWindow(Gtk.Window):
         self.flush_output()
         self.update_room_view()
 
-    def on_room_view_size_allocate(self, allocation, data):
-        self.scroll_to_bottom()
+        async def scroll():
+            await asyncio.sleep(0)
+            self.scroll_to_bottom()
+
+        asyncio.create_task(scroll())
 
     def on_load_game(self, data):
         """Handles the load game button."""
