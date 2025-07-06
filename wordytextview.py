@@ -16,12 +16,6 @@ class WordyTextView(Gtk.TextView):
         )
         self.set_wrap_mode(Gtk.WrapMode.WORD)
 
-        self.menu = Gtk.Popover()
-        self.menu_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.menu_vbox.set_spacing(3)
-        self.menu.set_parent(self)
-        self.menu.set_child(self.menu_vbox)
-
         click_gesture = Gtk.GestureClick(button=0)
         click_gesture.connect("pressed", self.on_pressed)
         self.add_controller(click_gesture)
@@ -112,21 +106,23 @@ class WordyTextView(Gtk.TextView):
             return
 
         def on_menu_item_clicked(m, c):
-            self.menu.popdown()
             self.perform_command(c)
+            menu.popdown()
 
         def create_menu(commands):
-            while cmd := self.menu_vbox.get_last_child():
-                self.menu_vbox.remove(cmd)
-
+            menu = Gtk.Popover()
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            vbox.set_spacing(3)
+            menu.set_parent(self)
+            menu.set_child(vbox)
             for cmd in commands:
                 item = Gtk.Button(label=cmd)
                 style_context = item.get_style_context()
                 style_context.add_class("flat")
-                style_context.add_class("menu-button")
-                self.menu_vbox.append(item)
+                style_context.add_class("menu-button")                
+                vbox.append(item)
                 item.connect("clicked", on_menu_item_clicked, cmd)
-            return self.menu
+            return menu
 
         x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, click_x, click_y)
         found, i = self.get_iter_at_location(x, y)
@@ -147,3 +143,4 @@ class WordyTextView(Gtk.TextView):
                     where = Gdk.Rectangle.union(start_where, end_where)
                     menu.set_pointing_to(where)
                     menu.popup()
+                    # click.stop_emission_by_name("pressed")
