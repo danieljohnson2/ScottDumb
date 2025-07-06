@@ -147,8 +147,7 @@ class GameWindow(Gtk.Window):
             self.game = GuiGame(ExtractedFile(f), self)
 
         title_label = Gtk.Label(label="Scott Dumb")
-        style_context = title_label.get_style_context()
-        style_context.add_class("title")
+        title_label.add_css_class("title")
 
         self.header_bar = Gtk.HeaderBar()
         self.header_bar.set_title_widget(title_label)
