@@ -375,7 +375,7 @@ class Game:
         for logic in logics:
             if self.continuing_commands:
                 if logic.is_continuation:
-                    if logic.is_available():
+                    if logic.is_available:
                         await logic.execute()
                         halted = True
                 else:
