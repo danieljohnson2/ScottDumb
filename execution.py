@@ -2,7 +2,7 @@ from random import randint
 from time import sleep
 
 
-class Logic():
+class Logic:
     """This class contains the actual opcodes to execute for the game.
 
     Subclasses override methods to control when this can execute, but the
@@ -70,7 +70,8 @@ class Logic():
         that is a special case.
         """
 
-        def undefined(): raise ValueError(f"Undefined condition op: {op}")
+        def undefined():
+            raise ValueError(f"Undefined condition op: {op}")
 
         game = self.game
 
@@ -97,7 +98,10 @@ class Logic():
         if op == 11:
             return lambda: len(game.inventory.get_items()) == 0
         if op == 12:
-            return lambda: game.items[val].room not in [game.player_room, game.inventory]
+            return lambda: game.items[val].room not in [
+                game.player_room,
+                game.inventory,
+            ]
         if op == 13:
             return lambda: game.items[val].room != None
         if op == 14:
@@ -125,41 +129,77 @@ class Logic():
 
         game = self.game
 
-        def clear_screen(): pass  # we don't do this
+        def clear_screen():
+            pass  # we don't do this
 
-        def get_item(): game.get_item(item)
-        def superget_item(): game.get_item(item, force=True)
-        def drop_item(): game.drop_item(item)
-        def move_item(): game.move_item(item, room)
-        def remove_item(): game.move_item(item, None)
-        def swap_items(): game.swap_items(item1, item2)
-        def put_item_with(): game.move_item(item1, item2.room)
+        def get_item():
+            game.get_item(item)
 
-        def move_player(): game.move_player(room)
+        def superget_item():
+            game.get_item(item, force=True)
+
+        def drop_item():
+            game.drop_item(item)
+
+        def move_item():
+            game.move_item(item, room)
+
+        def remove_item():
+            game.move_item(item, None)
+
+        def swap_items():
+            game.swap_items(item1, item2)
+
+        def put_item_with():
+            game.move_item(item1, item2.room)
+
+        def move_player():
+            game.move_player(room)
 
         def swap_loc():
             saved_player_room = game.saved_player_room
             game.saved_player_room = game.player_room
             game.move_player(saved_player_room)
 
-        def set_counter(): game.counter.value = counter_value
-        def swap_counter(): counter.swap(game)
-        def add_counter(): game.counter.value += counter_value
-        def subtract_counter(): game.counter.value -= counter_value
-        def decrement_counter(): game.counter.value -= 1
-        def print_counter(): game.output(f"{game.counter.value} ")
+        def set_counter():
+            game.counter.value = counter_value
 
-        def set_flag(): flag.state = True
-        def reset_flag(): flag.state = False
+        def swap_counter():
+            counter.swap(game)
+
+        def add_counter():
+            game.counter.value += counter_value
+
+        def subtract_counter():
+            game.counter.value -= counter_value
+
+        def decrement_counter():
+            game.counter.value -= 1
+
+        def print_counter():
+            game.output(f"{game.counter.value} ")
+
+        def set_flag():
+            flag.state = True
+
+        def reset_flag():
+            flag.state = False
 
         def die():
             game.move_player(game.rooms[len(game.rooms) - 1])
             game.dark_flag.state = False
 
-        def game_over(): game.game_over = True
-        def check_score(): game.check_score()
-        def save_game(): game.save_game()
-        def describe_room(): game.needs_room_update = True
+        def game_over():
+            game.game_over = True
+
+        def check_score():
+            game.check_score()
+
+        def save_game():
+            game.save_game()
+
+        def describe_room():
+            game.needs_room_update = True
 
         def refill_lamp():
             game.light_remaining = game.light_duration
@@ -170,9 +210,11 @@ class Logic():
             game.saved_player_rooms[saved_room_value] = game.player_room
             game.move_player(saved_player_room)
 
-        def continue_actions(): game.continuing_commands = True
+        def continue_actions():
+            game.continuing_commands = True
 
-        def undefined(): raise ValueError(f"Undefined action op: {op}")
+        def undefined():
+            raise ValueError(f"Undefined action op: {op}")
 
         if op == 0:
             return lambda: None
@@ -297,8 +339,9 @@ class Command(Logic):
         verb_index = extracted_action.verb
         noun_index = extracted_action.noun
         self.verb = game.get_verb(extracted.verbs[verb_index])
-        self.noun = game.get_noun(
-            extracted.nouns[noun_index]) if noun_index > 0 else None
+        self.noun = (
+            game.get_noun(extracted.nouns[noun_index]) if noun_index > 0 else None
+        )
 
     def check_command(self, verb, noun):
         if self.verb == verb:
@@ -311,7 +354,7 @@ class Command(Logic):
 
 
 class Continuation(Logic):
-    """These logics are weird. They are continuations of commands or occurances 
+    """These logics are weird. They are continuations of commands or occurances
     which they follow. They run if a command executes the continue opcode, and
     if their condiiton is also met."""
 
@@ -322,7 +365,7 @@ class Continuation(Logic):
         return True
 
 
-class DelayRequest():
+class DelayRequest:
     """This object represents a request for the UI to pause
     before proceeding to the next command. This can be
     returned from the command execute() method."""

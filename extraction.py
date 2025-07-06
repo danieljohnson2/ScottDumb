@@ -1,4 +1,4 @@
-class ExtractedFile():
+class ExtractedFile:
     """Contiains all the data from file which it reads when constructed.
 
     max_carried - max # of items carried
@@ -33,34 +33,34 @@ class ExtractedFile():
         self.treasure_room = read_num(file)
 
         self.actions = []
-        for i in range(0, max_action_index+1):
+        for i in range(0, max_action_index + 1):
             self.actions.append(ExtractedAction(file))
 
         self.verbs = []
         self.nouns = []
-        for i in range(0, max_word_index+1):
+        for i in range(0, max_word_index + 1):
             self.verbs.append(read_string(file))
             self.nouns.append(read_string(file))
         self.grouped_verbs = group_words(self.verbs)
         self.grouped_nouns = group_words(self.nouns)
 
         self.rooms = []
-        for i in range(0, max_room_index+1):
+        for i in range(0, max_room_index + 1):
             self.rooms.append(ExtractedRoom(file))
 
         self.messages = []
-        for i in range(0, max_message_index+1):
+        for i in range(0, max_message_index + 1):
             self.messages.append(read_string(file))
 
         self.items = []
-        for i in range(0, max_item_index+1):
+        for i in range(0, max_item_index + 1):
             self.items.append(ExtractedItem(file))
 
         for a in self.actions:
             a.comment = read_string(file).strip()
 
 
-class ExtractedAction():
+class ExtractedAction:
     """Contains the bytecode for a unit of game logic.
 
     verb - verb number the player must enter, or 0 for 'occurances'
@@ -79,18 +79,15 @@ class ExtractedAction():
             read_num(file),
             read_num(file),
             read_num(file),
-            read_num(file)
+            read_num(file),
         ]
         self.conditions = [split_number(c, 20) for c in condition_nums]
 
-        action_nums = [
-            read_num(file),
-            read_num(file)
-        ]
+        action_nums = [read_num(file), read_num(file)]
         self.actions = [s for a in action_nums for s in split_number(a, 150)]
 
 
-class ExtractedRoom():
+class ExtractedRoom:
     """Contains the data for a room.
 
     description - room text
@@ -112,7 +109,7 @@ class ExtractedRoom():
         self.description = read_string(file)
 
 
-class ExtractedItem():
+class ExtractedItem:
     """Contains the data for an item.
 
     description - item description, displayed in 'look' text.
@@ -127,11 +124,12 @@ class ExtractedItem():
         self.carry_word = None
 
         if self.description.endswith("/"):
-            wordstart = self.description.rfind(
-                "/", 0, len(self.description) - 1)
-            self.carry_word = self.description[wordstart +
-                                               1:len(self.description) - 1]
+            wordstart = self.description.rfind("/", 0, len(self.description) - 1)
+            self.carry_word = self.description[
+                wordstart + 1 : len(self.description) - 1
+            ]
             self.description = self.description[:wordstart]
+
 
 # Utility Functions
 
@@ -160,17 +158,17 @@ def read_string_plus(file):
             break
 
         if len(buffer) == 0:
-            if line[0] == "\"":  # remove opening quote
+            if line[0] == '"':  # remove opening quote
                 line = line[1:]
             else:  # did not start with opening quote?
                 raise ValueError(f"'{line}' is not a string.")
 
-        endquotepos = line.rfind("\"")
+        endquotepos = line.rfind('"')
         if endquotepos < 0:
             buffer.append(line)
         else:
             buffer.append(line[:endquotepos])
-            extra = line[endquotepos+1:]
+            extra = line[endquotepos + 1 :]
             break
 
     return ("".join(buffer), extra)

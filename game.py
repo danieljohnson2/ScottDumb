@@ -1,7 +1,7 @@
 from execution import Occurance, Command, Continuation
 
 
-class Game():
+class Game:
     """This is the root object containing the game state.
 
     word_length - the length of Word object text
@@ -72,9 +72,12 @@ class Game():
         self.up_word = self.get_noun("UP")
         self.down_word = self.get_noun("DOWN")
         self.directions = [
-            self.north_word, self.south_word,
-            self.east_word, self.west_word,
-            self.up_word, self.down_word
+            self.north_word,
+            self.south_word,
+            self.east_word,
+            self.west_word,
+            self.up_word,
+            self.down_word,
         ]
 
         # Hardcoded direction aliases
@@ -149,8 +152,9 @@ class Game():
 
         # try to assign command-words where we can find 'em, so items
         # you can't carry can still be clicked.
-        carry_words = {item.carry_word for item in self.items
-                       if item.carry_word is not None}
+        carry_words = {
+            item.carry_word for item in self.items if item.carry_word is not None
+        }
 
         for n in self.nouns.values():
             if n not in self.directions and n not in carry_words:
@@ -163,7 +167,10 @@ class Game():
         for n in carry_words:
             if n not in self.directions:
                 for nm in self.items:
-                    if len(nm.command_words) == 0 and nm.get_candidate_name(n) is not None:
+                    if (
+                        len(nm.command_words) == 0
+                        and nm.get_candidate_name(n) is not None
+                    ):
                         nm.command_words.add(n)
 
         self.output_words = []
@@ -198,7 +205,9 @@ class Game():
 
         if word is not None:
             for i in self.items:
-                if (i.room == self.player_room or i.room == self.inventory) and i.carry_word == word:
+                if (
+                    i.room == self.player_room or i.room == self.inventory
+                ) and i.carry_word == word:
                     return i
 
             for i in self.items:
@@ -215,7 +224,9 @@ class Game():
 
         if word is not None:
             for i in self.items:
-                if (i.room == self.player_room or i.room == self.inventory) and i.command_word == word:
+                if (
+                    i.room == self.player_room or i.room == self.inventory
+                ) and i.command_word == word:
                     return i
 
             for i in self.items:
@@ -225,7 +236,7 @@ class Game():
 
     def normalize_word(self, word):
         """Converts the word to the the right length, and uppercase."""
-        return word[:self.word_length].upper()
+        return word[: self.word_length].upper()
 
     def get_noun(self, text):
         """Returns the Word for the text given; this will normalize text
@@ -321,7 +332,8 @@ class Game():
         """
 
         execution = self.execute_command(
-            self.commands, lambda l: l.check_command(verb, noun))
+            self.commands, lambda l: l.check_command(verb, noun)
+        )
 
         halted = False
         for x in execution:
@@ -349,7 +361,7 @@ class Game():
             self.output_line("OK")
         elif verb == self.drop_word:
             item = self.get_carry_item(noun)
-            if (item is None or item.room != self.inventory):
+            if item is None or item.room != self.inventory:
                 raise ValueError("I'm not carrying it!")
 
             self.drop_item(item)
@@ -383,7 +395,8 @@ class Game():
 
     def check_score(self):
         treasures_found = sum(
-            1 for t in self.treasure_room.get_items() if t.is_treasure())
+            1 for t in self.treasure_room.get_items() if t.is_treasure()
+        )
         score = int(treasures_found * 100 / self.treasure_count)
         self.output_line(f"I stored {treasures_found} treasures.")
         self.output_line(f"On a scale of 0-100, that's: {score}")
@@ -443,6 +456,7 @@ class Game():
 
     def save_game(self):
         """Saves the game to the file named using the ScottFree format."""
+
         def get_room_index(r):
             return 0 if r is None else r.index
 
@@ -454,7 +468,8 @@ class Game():
             # counters (and saved rooms)
             for n in range(0, 16):
                 file.write(
-                    f"{self.counters[n].value} {get_room_index(self.saved_player_rooms[n])}\n")
+                    f"{self.counters[n].value} {get_room_index(self.saved_player_rooms[n])}\n"
+                )
 
             bitflags = 0
             for f in reversed(self.flags):
@@ -465,7 +480,8 @@ class Game():
             player_room_index = get_room_index(self.player_room)
 
             file.write(
-                f"{bitflags} {dark} {player_room_index} {self.counter.value} {get_room_index(self.saved_player_room)} {self.light_remaining}\n")
+                f"{bitflags} {dark} {player_room_index} {self.counter.value} {get_room_index(self.saved_player_room)} {self.light_remaining}\n"
+            )
 
             for item in self.items:
                 file.write(f"{get_room_index(item.room)}\n")
@@ -479,6 +495,7 @@ class Game():
         Loads the game from the file named, which is in the ScottFree format.
         Returns True if the game was loaded, and False if this was cancelled.
         """
+
         def find_room(index):
             if index == -1:
                 return self.inventory
@@ -521,7 +538,7 @@ class Game():
         return "scott.sav"
 
 
-class Word():
+class Word:
     """Represents a word in the vocabulary; these are interned, so duplicate
     word objects do not exist.
 
@@ -533,8 +550,11 @@ class Word():
         self.text = aliases[0]
         self.aliases = aliases
 
-    def __str__(self): return self.text
-    def __repr__(self): return self.text
+    def __str__(self):
+        return self.text
+
+    def __repr__(self):
+        return self.text
 
 
 class WordError(Exception):
@@ -545,10 +565,11 @@ class WordError(Exception):
         self.word = word
         self.message = message
 
-    def __str__(self): return self.message
+    def __str__(self):
+        return self.message
 
 
-class GameObject():
+class GameObject:
     """A base class for things in the game that you can see.
 
     game - the game this object is part of
@@ -604,7 +625,7 @@ class Room(GameObject):
             self.game.east_word: self.east,
             self.game.west_word: self.west,
             self.game.up_word: self.up,
-            self.game.down_word: self.down
+            self.game.down_word: self.down,
         }
 
         try:
@@ -615,7 +636,10 @@ class Room(GameObject):
     def get_look_words(self):
         """The text to describe the room and everything in it."""
 
-        if self.game.dark_flag.state and self.game.lamp_item.room != self.game.inventory:
+        if (
+            self.game.dark_flag.state
+            and self.game.lamp_item.room != self.game.inventory
+        ):
             return [OutputWord("It is too dark to see!")]
 
         words = [OutputWord(self.description)]
@@ -669,14 +693,14 @@ class Item(GameObject):
     def __init__(self, game, extracted_item):
         GameObject.__init__(self, game, extracted_item.description)
         self.carry_word = game.get_noun(extracted_item.carry_word)
-        self.command_words = {
-            self.carry_word} if self.carry_word is not None else set()
+        self.command_words = {self.carry_word} if self.carry_word is not None else set()
         self.room = None
         output_word = OutputWord(self.description, item=self)
         self.room_word = output_word
         self.inventory_word = output_word
 
-    def is_treasure(self): return self.description.startswith("*")
+    def is_treasure(self):
+        return self.description.startswith("*")
 
     def get_command_name(self, word):
         """Picks a name to include in a command referring to this item.
@@ -691,17 +715,17 @@ class Item(GameObject):
         short_name = str(word).upper()
         for w in self.description.upper().split():
             s = w.strip("*!:;.?$#@")
-            if s[0:len(short_name)] == short_name and "'" not in s:
+            if s[0 : len(short_name)] == short_name and "'" not in s:
                 return s
         return None
 
 
-class Flag():
+class Flag:
     def __init__(self):
         self.state = False
 
 
-class Counter():
+class Counter:
     def __init__(self):
         self.value = 0
 
@@ -711,14 +735,15 @@ class Counter():
         self.value = tmp
 
 
-class OutputWord():
+class OutputWord:
     def __init__(self, text, item=None, direction=None):
         self.text = text
         self.item = item
         self.direction = direction
         self.tags = {}
 
-    def is_plain(self, game): return len(self.active_commands(game)) == 0
+    def is_plain(self, game):
+        return len(self.active_commands(game)) == 0
 
     def active_commands(self, game):
         """
@@ -748,7 +773,8 @@ class OutputWord():
         else:
             return []
 
-    def is_newline(self): return self.text == "\n"
+    def is_newline(self):
+        return self.text == "\n"
 
     def __str__(self):
         return self.text
