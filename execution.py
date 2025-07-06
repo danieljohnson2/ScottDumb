@@ -28,6 +28,7 @@ class Logic:
         for op in extracted_action.actions:
             self.actions.append(self.create_action(op, get_arg))
 
+    @property
     def is_available(self):
         """Runs conditions for the logic; returns true if this logic can execute."""
         for c in self.conditions:
@@ -53,8 +54,9 @@ class Logic:
         by noun only. Also checks availability."""
         return False
 
+    @property
     def is_continuation(self):
-        """True if this is a continuation action; is_available() must be checked separately."""
+        """True if this is a continuation action; is_available must be checked separately."""
         return False
 
     async def execute(self):
@@ -338,7 +340,7 @@ class Occurance(Logic):
         self.chance = extracted_action.noun
 
     def check_occurance(self):
-        return self.is_available() and randint(1, 100) <= self.chance
+        return self.is_available and randint(1, 100) <= self.chance
 
 
 class Command(Logic):
@@ -356,11 +358,11 @@ class Command(Logic):
     def check_command(self, verb, noun):
         if self.verb == verb:
             if self.noun is None or self.noun == noun:
-                return self.is_available()
+                return self.is_available
         return False
 
     def check_available_command(self, noun):
-        return self.noun == noun and self.is_available()
+        return self.noun == noun and self.is_available
 
 
 class Continuation(Logic):
@@ -371,5 +373,6 @@ class Continuation(Logic):
     def __init__(self, game, extracted_action):
         Logic.__init__(self, game, extracted_action)
 
+    @property
     def is_continuation(self):
         return True

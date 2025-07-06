@@ -44,10 +44,10 @@ class WordyTextView(Gtk.TextView):
                 return tag
 
         words = list(words)
-        while len(words) > 0 and words[0].is_newline():
+        while len(words) > 0 and words[0].is_newline:
             del words[0]
 
-        while len(words) > 0 and words[-1].is_newline():
+        while len(words) > 0 and words[-1].is_newline:
             del words[-1]
 
         iter = self.buffer.get_end_iter()
@@ -61,7 +61,7 @@ class WordyTextView(Gtk.TextView):
             else:
                 self.buffer.insert_with_tags(iter, str(word), tag)
 
-            if word.is_newline():
+            if word.is_newline:
                 word_index = 0
             else:
                 word_index += 1

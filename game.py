@@ -313,12 +313,12 @@ class Game:
 
         for logic in self.occurances:
             if self.continuing_commands:
-                if logic.is_continuation():
-                    if logic.is_available():
+                if logic.is_continuation:
+                    if logic.is_available:
                         await logic.execute()
                 else:
                     self.continuing_commands = False
-            elif not logic.is_continuation() and logic.check_occurance():
+            elif not logic.is_continuation and logic.check_occurance():
                 await logic.execute()
 
     async def perform_command(self, verb, noun):
@@ -374,7 +374,7 @@ class Game:
         halted = False
         for logic in logics:
             if self.continuing_commands:
-                if logic.is_continuation():
+                if logic.is_continuation:
                     if logic.is_available():
                         await logic.execute()
                         halted = True
@@ -390,7 +390,7 @@ class Game:
 
     def check_score(self):
         treasures_found = sum(
-            1 for t in self.treasure_room.get_items() if t.is_treasure()
+            1 for t in self.treasure_room.get_items() if t.is_treasure
         )
         score = int(treasures_found * 100 / self.treasure_count)
         self.output_line(f"I stored {treasures_found} treasures.")
@@ -694,6 +694,7 @@ class Item(GameObject):
         self.room_word = output_word
         self.inventory_word = output_word
 
+    @property
     def is_treasure(self):
         return self.description.startswith("*")
 
@@ -768,6 +769,7 @@ class OutputWord:
         else:
             return []
 
+    @property
     def is_newline(self):
         return self.text == "\n"
 
