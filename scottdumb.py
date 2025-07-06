@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 import gi
+import asyncio
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 
-from gi.repository import GLib
-from gi.repository import Gtk
+from gi.repository import GLib, Gtk, Gio
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
@@ -341,15 +341,33 @@ class GameWindow(Gtk.Window):
             self.queue_command("SCORE")
 
 
-seed()
+def on_activate(*args):
+    if len(argv) >= 2:
+        game_path = argv[1]
+    else:
+        game_path = get_game_path()
 
-if len(argv) >= 2:
-    game_path = argv[1]
-else:
-    game_path = get_game_path()
+    seed()
+    win = GameWindow(game_path)
+    win.connect("delete-event", lambda *x: asyncio.get_running_loop().stop())
+    win.show_all()
 
-win = GameWindow(game_path)
-win.connect("delete-event", Gtk.main_quit)
-win.show_all()
 
-Gtk.main()
+async def start():
+    app = Gio.Application()
+    app.connect("activate", on_activate)
+    app.register()
+    app.activate()
+
+
+def repeated_iteration():
+    while main_context.pending():
+        main_context.iteration(False)
+    loop.call_later(0.01, repeated_iteration)
+
+
+loop = asyncio.new_event_loop()
+main_context = GLib.MainContext.default()
+loop.create_task(start())
+repeated_iteration()
+loop.run_forever()
