@@ -310,15 +310,15 @@ class Game:
 
         self.continuing_commands = False
 
-        for l in self.occurances:
+        for logic in self.occurances:
             if self.continuing_commands:
-                if l.is_continuation():
-                    if l.is_available():
-                        yield from l.execute()
+                if logic.is_continuation():
+                    if logic.is_available():
+                        yield from logic.execute()
                 else:
                     self.continuing_commands = False
-            elif not l.is_continuation() and l.check_occurance():
-                yield from l.execute()
+            elif not logic.is_continuation() and logic.check_occurance():
+                yield from logic.execute()
 
     def perform_command(self, verb, noun):
         """Executes a command given. Either verb or noun can be None.
@@ -332,7 +332,7 @@ class Game:
         """
 
         execution = self.execute_command(
-            self.commands, lambda l: l.check_command(verb, noun)
+            self.commands, lambda logic: logic.check_command(verb, noun)
         )
 
         halted = False
@@ -381,15 +381,15 @@ class Game:
         """
         self.continuing_commands = False
 
-        for l in logics:
+        for logic in logics:
             if self.continuing_commands:
-                if l.is_continuation():
-                    if l.is_available():
-                        yield from l.execute()
+                if logic.is_continuation():
+                    if logic.is_available():
+                        yield from logic.execute()
                 else:
                     break
-            elif checker(l):
-                yield from l.execute()
+            elif checker(logic):
+                yield from logic.execute()
                 if not self.continuing_commands:
                     break
 

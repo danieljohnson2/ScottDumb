@@ -36,7 +36,7 @@ def filechooser(window, title, action):
 @contextmanager
 def error_alert(window, text):
     dlg = Gtk.MessageDialog(
-        transient_for=self,
+        transient_for=window,
         message_type=Gtk.MessageType.ERROR,
         buttons=Gtk.ButtonsType.CANCEL,
         text=text,
@@ -248,7 +248,7 @@ class GameWindow(Gtk.Window):
 
     def on_save_game(self, data):
         if self.running_iter is not None:
-            with error_alert(selk, "You cannot save now.") as dlg:
+            with error_alert(self, "You cannot save now.") as dlg:
                 dlg.format_secondary_text(
                     "You cannot save the game while game actions are happening."
                 )
@@ -324,7 +324,7 @@ class GameWindow(Gtk.Window):
                     self.pending_command = None
                     self.queue_command(cmd)
             except Exception as e:
-                game.output(str(e))
+                self.game.output(str(e))
         self.flush_output()
         self.update_room_view()
         False  # do not repeat

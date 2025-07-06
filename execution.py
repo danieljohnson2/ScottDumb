@@ -102,9 +102,9 @@ class Logic:
                 game.inventory,
             ]
         if op == 13:
-            return lambda: game.items[val].room != None
+            return lambda: game.items[val].room is not None
         if op == 14:
-            return lambda: game.items[val].room == None
+            return lambda: game.items[val].room is None
         if op == 15:
             return lambda: game.counter.value <= val
         if op == 16:
