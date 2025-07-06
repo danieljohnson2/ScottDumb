@@ -14,12 +14,13 @@ class WordyTextView(Gtk.TextView):
         Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, **kwargs)
         self.set_wrap_mode(Gtk.WrapMode.WORD)
 
-        self.gesture = Gtk.GestureClick(button=0)
-        self.gesture.connect("pressed", self.on_button_press_event)
-        self.add_controller(self.gesture)
+        click_gesture = Gtk.GestureClick(button=0)
+        click_gesture.connect("pressed", self.on_pressed)
+        self.add_controller(click_gesture)
 
-    # self.connect("button-press-event", self.on_button_press_event)
-    # self.connect("motion-notify-event", self.on_motion_notify_event)
+        motion_controller = Gtk.EventControllerMotion()
+        motion_controller.connect("motion", self.on_motion)
+        self.add_controller(motion_controller)
 
     def append_line(self):
         """Adds a line break to the view. If it is now empty, this does nothing."""
@@ -86,19 +87,17 @@ class WordyTextView(Gtk.TextView):
 
         tag_table.foreach(lambda tag: tag_table.remove(tag))
 
-    def on_motion_notify_event(self, text_view, event):
-        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+    def on_motion(self, controller, mouse_x, mouse_y):
+        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, mouse_x, mouse_y)
         found, i = self.get_iter_at_location(x, y)
         if found and len(i.get_tags()) > 0:
             cursor_name = "pointer"
         else:
             cursor_name = "text"
+        cursor = Gdk.Cursor.new_from_name(cursor_name, None)
+        self.set_cursor(cursor)
 
-        w = self.get_window(Gtk.TextWindowType.TEXT)
-        cursor = Gdk.Cursor.new_from_name(w.get_display(), cursor_name)
-        w.set_cursor(cursor)
-
-    def on_button_press_event(self, click, count, click_x, click_y):
+    def on_pressed(self, click, count, click_x, click_y):
         click.set_state(Gtk.EventSequenceState.CLAIMED)
 
         if count != 1:
