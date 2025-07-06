@@ -1,6 +1,6 @@
 import asyncio
 
-from gi.repository import GLib, Gtk, Gdk, Gio
+from gi.repository import GLib, Gio
 
 
 def run(initializer_coro):

@@ -16,7 +16,7 @@ class WordyTextView(Gtk.TextView):
         )
         self.set_wrap_mode(Gtk.WrapMode.WORD)
 
-        click_gesture = Gtk.GestureClick(button=0)
+        click_gesture = Gtk.GestureClick(button=1)
         click_gesture.connect("pressed", self.on_pressed)
         self.add_controller(click_gesture)
 
