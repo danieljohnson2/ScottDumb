@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import gi
 import asyncio
-import sys
 import os
 
 gi.require_version("Gtk", "4.0")
@@ -147,9 +146,12 @@ class GameWindow(Gtk.Window):
         with open(game_file, "r") as f:
             self.game = GuiGame(ExtractedFile(f), self)
 
+        title_label = Gtk.Label(label="Scott Dumb")
+        style_context = title_label.get_style_context()
+        style_context.add_class("title")
+
         self.header_bar = Gtk.HeaderBar()
-        self.header_bar.set_title_widget(Gtk.Label(label="Scott Dumb"))
-        # self.header_bar.set_show_close_button(True)
+        self.header_bar.set_title_widget(title_label)
 
         self.load_button = Gtk.Button(label="_Load", use_underline=True)
         self.load_button.connect("clicked", self.on_load_game)

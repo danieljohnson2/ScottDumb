@@ -11,9 +11,11 @@ class WordyTextView(Gtk.TextView):
         self.perform_command = perform_command
         self.words_by_tag = {}
         self.buffer = Gtk.TextBuffer()
-        Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, cursor_visible=False, **kwargs)
+        Gtk.TextView.__init__(
+            self, buffer=self.buffer, editable=False, cursor_visible=False, **kwargs
+        )
         self.set_wrap_mode(Gtk.WrapMode.WORD)
-        
+
         self.menu = Gtk.Popover()
         self.menu_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.menu_vbox.set_spacing(3)
@@ -121,7 +123,7 @@ class WordyTextView(Gtk.TextView):
                 item = Gtk.Button(label=cmd)
                 style_context = item.get_style_context()
                 style_context.add_class("flat")
-                style_context.add_class("menu-button")                
+                style_context.add_class("menu-button")
                 self.menu_vbox.append(item)
                 item.connect("clicked", on_menu_item_clicked, cmd)
             return self.menu
