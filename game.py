@@ -346,7 +346,7 @@ class Game:
         if verb is None or verb == self.go_word:
             next = self.player_room.get_move(noun)
             if next is None:
-                raise WordError(noun, f"I can't go there!")
+                raise WordError(noun, "I can't go there!")
             self.move_player(next)
         elif verb == self.get_word:
             item = self.get_carry_item(noun)

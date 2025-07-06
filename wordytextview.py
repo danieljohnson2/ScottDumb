@@ -1,13 +1,8 @@
 #!/usr/bin/python3
-from sys import argv
-from random import seed
 
 from gi.repository import Pango
-from gi.repository import GLib
 from gi.repository import Gdk
 from gi.repository import Gtk
-from game import Game
-from extraction import ExtractedFile
 
 
 class WordyTextView(Gtk.TextView):
