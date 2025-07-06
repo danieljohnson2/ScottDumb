@@ -1,3 +1,4 @@
+import asyncio
 from random import randint
 
 
@@ -56,10 +57,15 @@ class Logic:
         """True if this is a continuation action; is_available() must be checked separately."""
         return False
 
-    def execute(self):
-        """Runs the action. This applies changes to self.game."""
+    async def execute(self):
+        """Runs the action. This applies changes to self.game. If any of the actions are co-routines,
+        this will await them."""
         for a in self.actions:
-            yield a()
+            t = a()
+            if asyncio.iscoroutine(t):
+                await t
+            else:
+                await asyncio.sleep(0.0)
 
     def create_condition(self, op, val):
         """Returns a function (no arguments, returns a boolean) that
@@ -310,7 +316,12 @@ class Logic:
             saved_room_value = value_source()
             return swap_specific_loc
         if op == 88:
-            return lambda: DelayRequest(2000)
+
+            async def wait():
+                game.flush_output()
+                await asyncio.sleep(2.0)
+
+            return wait
         if op >= 102:
             return lambda: game.output_line(game.messages[op - 50])
         return undefined()
@@ -355,19 +366,10 @@ class Command(Logic):
 class Continuation(Logic):
     """These logics are weird. They are continuations of commands or occurances
     which they follow. They run if a command executes the continue opcode, and
-    if their condiiton is also met."""
+    if their condition is also met."""
 
     def __init__(self, game, extracted_action):
         Logic.__init__(self, game, extracted_action)
 
     def is_continuation(self):
         return True
-
-
-class DelayRequest:
-    """This object represents a request for the UI to pause
-    before proceeding to the next command. This can be
-    returned from the command execute() method."""
-
-    def __init__(self, milliseconds):
-        self.milliseconds = milliseconds

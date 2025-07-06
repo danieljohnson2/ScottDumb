@@ -195,6 +195,11 @@ class Game:
         self.output_words = []
         return out
 
+    def flush_output(self):
+        """Flushes any buffered output; this will call extract_output() and display
+        whatever is returned."""
+        pass
+
     def get_carry_item(self, word):
         """Looks up the item that can be picked up via "GET <word>"
 
@@ -294,13 +299,9 @@ class Game:
 
         return (verb, noun)
 
-    def perform_occurances(self):
+    async def perform_occurances(self):
         """This must be called before taking user input, and runs 'occurance'
         logic that handles events other that carrying out commands.
-
-        This is an iterator; mostly it yields a sequence of 'None' which you must
-        consume to execute each step. But it may return a request object like
-        DelayRequest to ask the invoker to pause.
         """
 
         if self.lamp_item.room == self.inventory and self.light_remaining > 0:
@@ -314,31 +315,22 @@ class Game:
             if self.continuing_commands:
                 if logic.is_continuation():
                     if logic.is_available():
-                        yield from logic.execute()
+                        await logic.execute()
                 else:
                     self.continuing_commands = False
             elif not logic.is_continuation() and logic.check_occurance():
-                yield from logic.execute()
+                await logic.execute()
 
-    def perform_command(self, verb, noun):
+    async def perform_command(self, verb, noun):
         """Executes a command given. Either verb or noun can be None.
 
         This executes commands first, but if none are found it implements
         some default verbs.
-
-        This is an iterator; mostly it yields a sequence of 'None' which you must
-        consume to execute each step. But it may return a request object like
-        DelayRequest to ask the invoker to pause.
         """
 
-        execution = self.execute_command(
+        halted = await self.execute_command(
             self.commands, lambda logic: logic.check_command(verb, noun)
         )
-
-        halted = False
-        for x in execution:
-            yield x
-            halted = True
 
         if halted:
             return
@@ -369,29 +361,32 @@ class Game:
         else:
             raise ValueError("I don't understand.")
 
-    def execute_command(self, logics, checker):
+    async def execute_command(self, logics, checker):
         """
         This executes a list of logics, as permitted by its conditions. Logics
         can only run if the 'checker' function given returns true for it.
         This halts after the first action, unless the 'continue' opcode overrides this.
 
-        This is an iterator; mostly it yields a sequence of 'None' which you must
-        consume to execute each step. But it may return a request object like
-        DelayRequest to ask the invoker to pause.
+        This returns True if it executed any logics to run, and False if not.
         """
         self.continuing_commands = False
 
+        halted = False
         for logic in logics:
             if self.continuing_commands:
                 if logic.is_continuation():
                     if logic.is_available():
-                        yield from logic.execute()
+                        await logic.execute()
+                        halted = True
                 else:
                     break
             elif checker(logic):
-                yield from logic.execute()
+                await logic.execute()
+                halted = True
                 if not self.continuing_commands:
                     break
+
+        return halted
 
     def check_score(self):
         treasures_found = sum(

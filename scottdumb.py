@@ -9,7 +9,6 @@ from gi.repository import GLib, Gtk, Gio
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
-from execution import DelayRequest
 from contextlib import contextmanager
 
 from sys import argv
@@ -67,6 +66,10 @@ class GuiGame(Game):
     def __init__(self, extracted_game, window):
         Game.__init__(self, extracted_game)
         self.window = window
+
+    def flush_output(self):
+        self.window.flush_output()
+        self.window.update_room_view()
 
     def get_save_game_path(self):
         with filechooser(self.window, "Save Game", Gtk.FileChooserAction.SAVE) as dlg:
@@ -166,10 +169,28 @@ class GameWindow(Gtk.Window):
 
         self.set_default_size(900, 500)
 
-        self.running_iter = self.before_turn()
+        self.running_task = None
+        self.start_task(self.before_turn())
         self.pending_command = None
 
-        self.run_next_command()
+    def start_task(self, coro):
+        task = loop.create_task(coro)
+
+        def done(*_args):
+            if self.running_task == task:
+                self.running_task = None
+
+            if (
+                self.running_task is None
+                and self.pending_command is not None
+                and self.pending_command == self.command_entry.get_text()
+            ):
+                cmd = self.pending_command
+                self.pending_command = None
+                self.queue_command(cmd)
+
+        task.add_done_callback(done)
+        self.running_task = task
 
     def flush_output(self):
         """
@@ -216,7 +237,7 @@ class GameWindow(Gtk.Window):
         self.inventory_view.clear()
         self.inventory_view.append_words(words)
 
-    def before_turn(self):
+    async def before_turn(self):
         """
         Performs game logic that should happen before user commands are accepted.
         This flushes output and updates the room view.
@@ -224,7 +245,7 @@ class GameWindow(Gtk.Window):
         game = self.game
 
         if not game.game_over:
-            yield from game.perform_occurances()
+            await game.perform_occurances()
             self.command_entry.grab_focus()
 
         self.flush_output()
@@ -238,7 +259,7 @@ class GameWindow(Gtk.Window):
         game = self.game
         if game.load_game():
             self.pending_command = None
-            self.running_iter = None
+            self.running_task = None
             game.extract_output()
             self.script_view.clear()
             game.output_line("Game loaded.")
@@ -247,7 +268,7 @@ class GameWindow(Gtk.Window):
             self.command_entry.grab_focus()
 
     def on_save_game(self, data):
-        if self.running_iter is not None:
+        if self.running_task is not None:
             with error_alert(self, "You cannot save now.") as dlg:
                 dlg.format_secondary_text(
                     "You cannot save the game while game actions are happening."
@@ -264,9 +285,8 @@ class GameWindow(Gtk.Window):
         and if so it will be running after this returns. If called while
         another command is running, this will queue the new command to run
         after the old completes."""
-        if self.running_iter is None:
-            self.running_iter = self.command_iter(cmd)
-            self.run_next_command()
+        if self.running_task is None:
+            self.start_task(self.do_command(cmd))
         else:
             self.pending_command = cmd
             self.command_entry.set_text(cmd)
@@ -275,29 +295,26 @@ class GameWindow(Gtk.Window):
         """This terminates all running and pending command
         activity. This interrupts a running command, if any,
         and is done before loading save."""
-        self.running_iter = None
+        self.running_task = None
         self.pending_command = None
 
-    def command_iter(self, cmd):
+    async def do_command(self, cmd):
         """This handles a user command; it parses it and
-        echos it to the output, then starts it executing.
-        This returns an iterator that must be consumed to complete
-        to command, and may return requests to be handled;
-        see run_next_command()."""
+        echos it to the output, then starts it executing."""
         game = self.game
         try:
             self.command_entry.set_text("")
             verb, noun = game.parse_command(cmd)
             game.output_line("> " + cmd)
             self.flush_output()
-            yield from game.perform_command(verb, noun)
+            await game.perform_command(verb, noun)
         except Exception as e:
             game.output(str(e))
             self.flush_output()
 
-        yield from self.before_turn()
+        await self.before_turn()
 
-    def run_next_command(self):
+    def run_next_command1(self):
         """Executes the next step of running_iter, or
         if that runs out, it starts pending_command and does
         the first stop of that.
@@ -306,15 +323,12 @@ class GameWindow(Gtk.Window):
         but if a delay occurs it queues intself to run again after
         the delay. In this way the UI can be responsive while a pause
         opcode is running."""
-        if self.running_iter is not None:
+        if self.running_task is not None:
             try:
                 while True:
-                    request = next(self.running_iter)
-                    if isinstance(request, DelayRequest):
-                        GLib.timeout_add(request.milliseconds, self.run_next_command)
-                        break
+                    next(self.running_task)
             except StopIteration:
-                self.running_iter = None
+                self.running_task = None
 
                 if (
                     self.pending_command is not None
