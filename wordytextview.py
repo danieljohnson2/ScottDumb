@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from gi.repository import Pango
 from gi.repository import Gdk
 from gi.repository import Gtk
@@ -142,4 +140,3 @@ class WordyTextView(Gtk.TextView):
                     where = Gdk.Rectangle.union(start_where, end_where)
                     menu.set_pointing_to(where)
                     menu.popup()
-                    # click.stop_emission_by_name("pressed")
