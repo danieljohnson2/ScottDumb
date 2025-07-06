@@ -2,8 +2,8 @@
 import gi
 import asyncio
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 
 from gi.repository import GLib, Gtk, Gio
 from game import Game
@@ -24,12 +24,29 @@ def make_filter(name, pattern):
 
 
 @contextmanager
-def filechooser(window, title, action):
-    dlg = Gtk.FileChooserDialog(title="Game", action=action, transient_for=window)
-    try:
-        yield dlg
-    finally:
-        dlg.destroy()
+def filechooser(title):
+    dlg = Gtk.FileDialog(title="Game")
+    yield dlg
+
+
+def _file_dialog_open_async(dlg, parent):
+    ended = loop.create_future()
+
+    def on_ready(dlg, result):
+        try:
+            file = dlg.open_finish(result)
+            ended.set_result(file)
+        except GLib.GError as err:
+            if err.domain == 'gtk-dialog-error-quark' and err.code ==2:
+                ended.set_result(None)
+            else:
+                ended.set_exception(err)
+
+    dlg.open(parent, None, on_ready)
+    return ended
+
+
+Gtk.FileDialog.open_async = _file_dialog_open_async
 
 
 @contextmanager
@@ -46,18 +63,17 @@ def error_alert(window, text):
         dlg.destroy()
 
 
-def get_game_path():
-    with filechooser(None, "Game", Gtk.FileChooserAction.OPEN) as dlg:
-        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        dlg.set_default_response(Gtk.ResponseType.OK)
-        dlg.add_filter(make_filter("Games", "*.dat"))
-        dlg.add_filter(make_filter("All Files", "*"))
-
-        if dlg.run() == Gtk.ResponseType.OK:
-            return dlg.get_filename()
-        else:
-            return None
+async def get_game_path():
+    dlg = Gtk.FileDialog(title="Game")
+    filters = Gio.ListStore()
+    filters.append(make_filter("Games", "*.dat"))
+    filters.append(make_filter("All Files", "*"))
+    dlg.set_filters(filters)
+    file = await dlg.open_async(None)
+    if file:
+        return file.get_path()
+    else:
+        return None
 
 
 class GuiGame(Game):
@@ -112,8 +128,8 @@ class GameWindow(Gtk.Window):
             self.game = GuiGame(ExtractedFile(f), self)
 
         self.header_bar = Gtk.HeaderBar()
-        self.header_bar.set_title("Scott Dumb")
-        self.header_bar.set_show_close_button(True)
+        self.header_bar.set_title_widget(Gtk.Label(label="Scott Dumb"))
+        # self.header_bar.set_show_close_button(True)
 
         self.load_button = Gtk.Button(label="_Load", use_underline=True)
         self.load_button.connect("clicked", self.on_load_game)
@@ -126,7 +142,7 @@ class GameWindow(Gtk.Window):
         self.set_titlebar(self.header_bar)
 
         self.room_view = WordyTextView(self.game, self.queue_command)
-        self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
+        #   self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
 
         self.script_view = WordyTextView(self.game, self.queue_command)
 
@@ -134,38 +150,43 @@ class GameWindow(Gtk.Window):
             self.game, self.queue_command, width_request=300
         )
 
-        vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        vBox.pack_start(self.room_view, False, False, 0)
-        vBox.pack_start(Gtk.Separator(), False, False, 0)
+        vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
+        vBox.append(self.room_view)
+        vBox.append(Gtk.Separator())
 
-        self.command_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.command_box = Gtk.Box(
+            orientation=Gtk.Orientation.HORIZONTAL,
+            spacing=5,
+            margin_top=5,
+            margin_bottom=5,
+        )
 
         command_label = Gtk.Label(label=">")
         command_label.set_margin_start(5)
-        self.command_entry = Gtk.Entry()
+        self.command_entry = Gtk.Entry(hexpand=True)
         self.command_entry.connect("activate", self.on_command_activate)
 
-        score_button = Gtk.Button(label="_Score", use_underline=True)
+        score_button = Gtk.Button(
+            label="_Score", use_underline=True, halign=Gtk.Align.END
+        )
         score_button.connect("clicked", self.on_score)
         score_button.set_margin_end(5)
-        self.command_box.pack_end(score_button, False, False, 0)
+        self.command_box.append(command_label)
+        self.command_box.append(self.command_entry)
+        self.command_box.append(score_button)
 
-        self.command_box.pack_start(command_label, False, False, 0)
-        self.command_box.pack_end(self.command_entry, True, True, 0)
-
-        vBox.pack_end(self.command_box, False, False, 5)
-
-        self.scroller = Gtk.ScrolledWindow()
+        self.scroller = Gtk.ScrolledWindow(hexpand=True)
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroller.add(self.script_view)
+        self.scroller.set_child(self.script_view)
 
-        hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        hBox.pack_start(self.scroller, True, True, 0)
-        hBox.pack_start(Gtk.Separator(), False, False, 0)
-        hBox.pack_start(self.inventory_view, False, False, 0)
-        vBox.pack_end(hBox, True, True, 0)
+        hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, vexpand=True)
+        hBox.append(self.scroller)
+        hBox.append(Gtk.Separator())
+        hBox.append(self.inventory_view)
+        vBox.append(hBox)
+        vBox.append(self.command_box)
 
-        self.add(vBox)
+        self.set_child(vBox)
 
         self.set_default_size(900, 500)
 
@@ -355,22 +376,26 @@ class GameWindow(Gtk.Window):
             self.queue_command("SCORE")
 
 
-def on_activate(*args):
+async def start_game():
     if len(argv) >= 2:
         game_path = argv[1]
     else:
-        game_path = get_game_path()
+        game_path = await get_game_path()
 
     if game_path:
         seed()
         win = GameWindow(game_path)
-        win.connect("delete-event", lambda *x: asyncio.get_running_loop().stop())
-        win.show_all()
+        win.connect("close-request", lambda *x: asyncio.get_running_loop().stop())
+        win.set_visible(True)
     else:
         loop.stop()
 
 
-async def start():
+def on_activate(*args):
+    loop.create_task(start_game())
+
+
+async def start_application():
     app = Gio.Application()
     app.connect("activate", on_activate)
     app.register()
@@ -385,6 +410,6 @@ def repeated_iteration():
 
 loop = asyncio.new_event_loop()
 main_context = GLib.MainContext.default()
-loop.create_task(start())
+loop.create_task(start_application())
 repeated_iteration()
 loop.run_forever()

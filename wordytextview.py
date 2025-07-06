@@ -13,8 +13,13 @@ class WordyTextView(Gtk.TextView):
         self.buffer = Gtk.TextBuffer()
         Gtk.TextView.__init__(self, buffer=self.buffer, editable=False, **kwargs)
         self.set_wrap_mode(Gtk.WrapMode.WORD)
-        self.connect("button-press-event", self.on_button_press_event)
-        self.connect("motion-notify-event", self.on_motion_notify_event)
+
+        self.gesture = Gtk.GestureClick(button=0)
+        self.gesture.connect("pressed", self.on_button_press_event)
+        self.add_controller(self.gesture)
+
+    # self.connect("button-press-event", self.on_button_press_event)
+    # self.connect("motion-notify-event", self.on_motion_notify_event)
 
     def append_line(self):
         """Adds a line break to the view. If it is now empty, this does nothing."""
@@ -93,27 +98,43 @@ class WordyTextView(Gtk.TextView):
         cursor = Gdk.Cursor.new_from_name(w.get_display(), cursor_name)
         w.set_cursor(cursor)
 
-    def on_button_press_event(self, text_view, event):
+    def on_button_press_event(self, _click, count, click_x, click_y):
+        _click.set_state(Gtk.EventSequenceState.CLAIMED)
+        if count != 1:
+            return
+
+        def on_menu_item_clicked(m, c):
+            self.perform_command(c)
+            menu.popdown()
+
         def create_menu(commands):
-            menu = Gtk.Menu()
-            menu.attach_to_widget(self)
+            menu = Gtk.Popover()
+            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            menu.set_parent(self)
+            menu.set_child(vbox)
             for cmd in commands:
-                item = Gtk.MenuItem(label=cmd)
-                menu.append(item)
-                item.connect("activate", self.on_menu_item_activate, cmd)
+                item = Gtk.Button(label=cmd)
+                vbox.append(item)
+                item.connect("clicked", on_menu_item_clicked, cmd)
             return menu
 
-        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, event.x, event.y)
+        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, click_x, click_y)
         found, i = self.get_iter_at_location(x, y)
         if found:
             for t in i.get_tags():
                 word = self.words_by_tag[t]
                 commands = word.active_commands(self.game)
                 if len(commands) > 0:
+                    start = i.copy()
+                    if not start.starts_word():
+                        start.backward_word_start()
+                    start_where = self.get_iter_location(start)
+                    end = i.copy()
+                    if not end.ends_word():
+                        end.forward_word_end()
+                    end_where = self.get_iter_location(end)
                     menu = create_menu(commands)
-                    menu.show_all()
-                    menu.popup_at_pointer(event)
-                    self.stop_emission_by_name("button-press-event")
-
-    def on_menu_item_activate(self, m, c):
-        self.perform_command(c)
+                    where = Gdk.Rectangle.union(start_where, end_where)
+                    menu.set_pointing_to(where)
+                    menu.popup()
+                    _click.stop_emission_by_name("pressed")()
