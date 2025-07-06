@@ -11,61 +11,11 @@ from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
 from contextlib import contextmanager
+from gui.filedialog import make_filter
+from gui.mainloop import run
 
 from sys import argv
 from random import seed
-
-
-def make_filter(name, pattern):
-    """Builds a GTK file-filter conveniently."""
-    f = Gtk.FileFilter()
-    f.set_name(name)
-    f.add_pattern(pattern)
-    return f
-
-
-@contextmanager
-def filechooser(title):
-    dlg = Gtk.FileDialog(title="Game")
-    yield dlg
-
-
-def _file_dialog_open_async(dlg, parent):
-    ended = loop.create_future()
-
-    def on_ready(dlg, result):
-        try:
-            file = dlg.open_finish(result)
-            ended.set_result(file)
-        except GLib.GError as err:
-            if err.domain == "gtk-dialog-error-quark" and err.code == 2:
-                ended.set_result(None)
-            else:
-                ended.set_exception(err)
-
-    dlg.open(parent, None, on_ready)
-    return ended
-
-
-def _file_dialog_save_async(dlg, parent):
-    ended = loop.create_future()
-
-    def on_ready(dlg, result):
-        try:
-            file = dlg.save_finish(result)
-            ended.set_result(file)
-        except GLib.GError as err:
-            if err.domain == "gtk-dialog-error-quark" and err.code == 2:
-                ended.set_result(None)
-            else:
-                ended.set_exception(err)
-
-    dlg.save(parent, None, on_ready)
-    return ended
-
-
-Gtk.FileDialog.open_async = _file_dialog_open_async
-Gtk.FileDialog.save_async = _file_dialog_save_async
 
 
 @contextmanager
@@ -216,7 +166,7 @@ class GameWindow(Gtk.Window):
         self.pending_command = None
 
     def start_task(self, coro):
-        task = loop.create_task(coro)
+        task = asyncio.get_running_loop().create_task(coro)
 
         def done(*_args):
             if self.running_task == task:
@@ -359,35 +309,6 @@ class GameWindow(Gtk.Window):
 
         await self.before_turn()
 
-    def run_next_command1(self):
-        """Executes the next step of running_iter, or
-        if that runs out, it starts pending_command and does
-        the first stop of that.
-
-        This loops and runs as much as possible of the commands,
-        but if a delay occurs it queues intself to run again after
-        the delay. In this way the UI can be responsive while a pause
-        opcode is running."""
-        if self.running_task is not None:
-            try:
-                while True:
-                    next(self.running_task)
-            except StopIteration:
-                self.running_task = None
-
-                if (
-                    self.pending_command is not None
-                    and self.pending_command == self.command_entry.get_text()
-                ):
-                    cmd = self.pending_command
-                    self.pending_command = None
-                    self.queue_command(cmd)
-            except Exception as e:
-                self.game.output(str(e))
-        self.flush_output()
-        self.update_room_view()
-        False  # do not repeat
-
     def on_command_activate(self, data):
         """Handles a user-entered command when the user hits enter."""
         if not self.game.game_over:
@@ -420,28 +341,7 @@ async def start_game():
         win.connect("close-request", lambda *x: asyncio.get_running_loop().stop())
         win.set_visible(True)
     else:
-        loop.stop()
+        asyncio.get_running_loop().stop()
 
 
-def on_activate(*args):
-    loop.create_task(start_game())
-
-
-async def start_application():
-    app = Gio.Application()
-    app.connect("activate", on_activate)
-    app.register()
-    app.activate()
-
-
-def repeated_iteration():
-    while main_context.pending():
-        main_context.iteration(False)
-    loop.call_later(0.01, repeated_iteration)
-
-
-loop = asyncio.new_event_loop()
-main_context = GLib.MainContext.default()
-loop.create_task(start_application())
-repeated_iteration()
-loop.run_forever()
+run(start_game())

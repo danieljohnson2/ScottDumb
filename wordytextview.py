@@ -118,7 +118,7 @@ class WordyTextView(Gtk.TextView):
             for cmd in commands:
                 item = Gtk.Button(label=cmd)
                 item.add_css_class("flat")
-                item.add_css_class("menu-button")                
+                item.add_css_class("menu-button")
                 vbox.append(item)
                 item.connect("clicked", on_menu_item_clicked, cmd)
             return menu
