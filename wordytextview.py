@@ -90,7 +90,7 @@ class WordyTextView(Gtk.TextView):
     def on_motion(self, controller, mouse_x, mouse_y):
         x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, mouse_x, mouse_y)
         found, i = self.get_iter_at_location(x, y)
-        if found and len(i.get_tags()) > 0:
+        if found and len(i.get_tags()) > 0 and not self.game.game_over:
             cursor_name = "pointer"
         else:
             cursor_name = "text"
@@ -100,7 +100,7 @@ class WordyTextView(Gtk.TextView):
     def on_pressed(self, click, count, click_x, click_y):
         click.set_state(Gtk.EventSequenceState.CLAIMED)
 
-        if count != 1:
+        if count != 1 or self.game.game_over:
             return
 
         def on_menu_item_clicked(m, c):
