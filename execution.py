@@ -276,7 +276,7 @@ class Logic:
         if op == 70:
             return clear_screen
         if op == 71:
-            return save_game
+            return lambda: game.save_game()
         if op == 72:
             item1 = game.items[value_source()]
             item2 = game.items[value_source()]

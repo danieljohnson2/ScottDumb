@@ -2,14 +2,12 @@
 import gi
 import asyncio
 
-gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")
+gi.require_version("Gtk", "4.0")
 
 from gi.repository import GLib, Gtk, Gio
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
-from contextlib import contextmanager
 
 from sys import argv
 from random import seed
@@ -23,41 +21,63 @@ def make_filter(name, pattern):
     return f
 
 
-@contextmanager
-def filechooser(window, title, action):
-    dlg = Gtk.FileChooserDialog(title="Game", action=action, transient_for=window)
-    try:
-        yield dlg
-    finally:
-        dlg.destroy()
+def make_filter_list(*filters):
+    """Builds a Gio.ListStore of file filters for Gtk.FileDialog."""
+    store = Gio.ListStore.new(Gtk.FileFilter)
+    for f in filters:
+        store.append(f)
+    return store
 
 
-@contextmanager
-def error_alert(window, text):
-    dlg = Gtk.MessageDialog(
-        transient_for=window,
-        message_type=Gtk.MessageType.ERROR,
-        buttons=Gtk.ButtonsType.CANCEL,
-        text=text,
-    )
-    try:
-        yield dlg
-    finally:
-        dlg.destroy()
+GAME_FILTERS = make_filter_list(
+    make_filter("Games", "*.dat"),
+    make_filter("All Files", "*"),
+)
+
+SAVE_FILTERS = make_filter_list(
+    make_filter("Saved Games", "*.sav"),
+    make_filter("All Files", "*"),
+)
 
 
-def get_game_path():
-    with filechooser(None, "Game", Gtk.FileChooserAction.OPEN) as dlg:
-        dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-        dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-        dlg.set_default_response(Gtk.ResponseType.OK)
-        dlg.add_filter(make_filter("Games", "*.dat"))
-        dlg.add_filter(make_filter("All Files", "*"))
+async def file_dialog_open(parent, title, filters):
+    """Opens a file dialog for selecting a file to open. Returns the path, or None if cancelled."""
+    dialog = Gtk.FileDialog()
+    dialog.set_title(title)
+    dialog.set_filters(filters)
+    future = loop.create_future()
 
-        if dlg.run() == Gtk.ResponseType.OK:
-            return dlg.get_filename()
-        else:
-            return None
+    def callback(dialog, result):
+        try:
+            file = dialog.open_finish(result)
+            future.set_result(file.get_path())
+        except GLib.Error:
+            future.set_result(None)
+
+    dialog.open(parent, None, callback)
+    return await future
+
+
+async def file_dialog_save(parent, title, filters):
+    """Opens a file dialog for selecting a file to save. Returns the path, or None if cancelled."""
+    dialog = Gtk.FileDialog()
+    dialog.set_title(title)
+    dialog.set_filters(filters)
+    future = loop.create_future()
+
+    def callback(dialog, result):
+        try:
+            file = dialog.save_finish(result)
+            future.set_result(file.get_path())
+        except GLib.Error:
+            future.set_result(None)
+
+    dialog.save(parent, None, callback)
+    return await future
+
+
+async def get_game_path():
+    return await file_dialog_open(None, "Game", GAME_FILTERS)
 
 
 class GuiGame(Game):
@@ -71,49 +91,29 @@ class GuiGame(Game):
         self.window.flush_output()
         self.window.update_room_view()
 
-    def get_save_game_path(self):
-        with filechooser(self.window, "Save Game", Gtk.FileChooserAction.SAVE) as dlg:
-            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-            dlg.add_button(Gtk.STOCK_SAVE, Gtk.ResponseType.OK)
-            dlg.set_default_response(Gtk.ResponseType.OK)
-            dlg.add_filter(make_filter("Saved Games", "*.sav"))
-            dlg.add_filter(make_filter("All Files", "*"))
+    async def get_save_game_path(self):
+        return await file_dialog_save(self.window, "Save Game", SAVE_FILTERS)
 
-            if dlg.run() == Gtk.ResponseType.OK:
-                return dlg.get_filename()
-            else:
-                return None
-
-    def get_load_game_path(self):
-        with filechooser(self.window, "Load Game", Gtk.FileChooserAction.OPEN) as dlg:
-            dlg.add_button(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL)
-            dlg.add_button(Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
-            dlg.set_default_response(Gtk.ResponseType.OK)
-            dlg.add_filter(make_filter("Saved Games", "*.sav"))
-            dlg.add_filter(make_filter("All Files", "*"))
-
-            if dlg.run() == Gtk.ResponseType.OK:
-                return dlg.get_filename()
-            else:
-                return None
+    async def get_load_game_path(self):
+        return await file_dialog_open(self.window, "Load Game", SAVE_FILTERS)
 
 
-class GameWindow(Gtk.Window):
+class GameWindow(Gtk.ApplicationWindow):
     """
     This window displays the game output in two sections; a top section shows
-    the room description, and the lower shows the transcript as you go. An text
+    the room description, and the lower shows the transcript as you go. A text
     entry area allows command input, and a header bar lets you load and save your game.
     """
 
-    def __init__(self, game_file):
-        Gtk.Window.__init__(self)
+    def __init__(self, app, game_file):
+        Gtk.ApplicationWindow.__init__(self, application=app)
 
         with open(game_file, "r") as f:
             self.game = GuiGame(ExtractedFile(f), self)
 
         self.header_bar = Gtk.HeaderBar()
-        self.header_bar.set_title("Scott Dumb")
-        self.header_bar.set_show_close_button(True)
+        self.set_title("Scott Dumb")
+        self.set_titlebar(self.header_bar)
 
         self.load_button = Gtk.Button(label="_Load", use_underline=True)
         self.load_button.connect("clicked", self.on_load_game)
@@ -123,10 +123,7 @@ class GameWindow(Gtk.Window):
         self.save_button.connect("clicked", self.on_save_game)
         self.header_bar.pack_end(self.save_button)
 
-        self.set_titlebar(self.header_bar)
-
         self.room_view = WordyTextView(self.game, self.queue_command)
-        self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
 
         self.script_view = WordyTextView(self.game, self.queue_command)
 
@@ -135,37 +132,40 @@ class GameWindow(Gtk.Window):
         )
 
         vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        vBox.pack_start(self.room_view, False, False, 0)
-        vBox.pack_start(Gtk.Separator(), False, False, 0)
+        vBox.append(self.room_view)
+        vBox.append(Gtk.Separator())
 
         self.command_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
 
         command_label = Gtk.Label(label=">")
         command_label.set_margin_start(5)
         self.command_entry = Gtk.Entry()
+        self.command_entry.set_hexpand(True)
         self.command_entry.connect("activate", self.on_command_activate)
 
         score_button = Gtk.Button(label="_Score", use_underline=True)
         score_button.connect("clicked", self.on_score)
         score_button.set_margin_end(5)
-        self.command_box.pack_end(score_button, False, False, 0)
 
-        self.command_box.pack_start(command_label, False, False, 0)
-        self.command_box.pack_end(self.command_entry, True, True, 0)
-
-        vBox.pack_end(self.command_box, False, False, 5)
+        self.command_box.append(command_label)
+        self.command_box.append(self.command_entry)
+        self.command_box.append(score_button)
 
         self.scroller = Gtk.ScrolledWindow()
         self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroller.add(self.script_view)
+        self.scroller.set_child(self.script_view)
+        self.scroller.set_hexpand(True)
 
         hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        hBox.pack_start(self.scroller, True, True, 0)
-        hBox.pack_start(Gtk.Separator(), False, False, 0)
-        hBox.pack_start(self.inventory_view, False, False, 0)
-        vBox.pack_end(hBox, True, True, 0)
+        hBox.set_vexpand(True)
+        hBox.append(self.scroller)
+        hBox.append(Gtk.Separator())
+        hBox.append(self.inventory_view)
+        vBox.append(hBox)
 
-        self.add(vBox)
+        vBox.append(self.command_box)
+
+        self.set_child(vBox)
 
         self.set_default_size(900, 500)
 
@@ -212,7 +212,7 @@ class GameWindow(Gtk.Window):
             adj.set_value(adj.get_upper())
 
         do_scroll()
-        # Scrolling may fail because the wigdets are not laid out yet;
+        # Scrolling may fail because the widgets are not laid out yet;
         # so this will try to do it again a little later.
         GLib.idle_add(do_scroll)
 
@@ -251,13 +251,13 @@ class GameWindow(Gtk.Window):
         self.flush_output()
         self.update_room_view()
 
-    def on_room_view_size_allocate(self, allocation, data):
-        self.scroll_to_bottom()
-
     def on_load_game(self, data):
         """Handles the load game button."""
+        self.start_task(self.do_load_game())
+
+    async def do_load_game(self):
         game = self.game
-        if game.load_game():
+        if await game.load_game():
             self.pending_command = None
             self.running_task = None
             game.extract_output()
@@ -268,15 +268,18 @@ class GameWindow(Gtk.Window):
             self.command_entry.grab_focus()
 
     def on_save_game(self, data):
+        """Handles the save game button."""
         if self.running_task is not None:
-            with error_alert(self, "You cannot save now.") as dlg:
-                dlg.format_secondary_text(
-                    "You cannot save the game while game actions are happening."
-                )
+            dialog = Gtk.AlertDialog()
+            dialog.set_message("You cannot save now.")
+            dialog.set_detail(
+                "You cannot save the game while game actions are happening."
+            )
+            dialog.set_buttons(["OK"])
+            dialog.show(self)
             return
 
-        """Handles the save game button."""
-        self.game.save_game()
+        self.start_task(self.game.save_game())
 
     # Command handling
 
@@ -314,35 +317,6 @@ class GameWindow(Gtk.Window):
 
         await self.before_turn()
 
-    def run_next_command1(self):
-        """Executes the next step of running_iter, or
-        if that runs out, it starts pending_command and does
-        the first stop of that.
-
-        This loops and runs as much as possible of the commands,
-        but if a delay occurs it queues intself to run again after
-        the delay. In this way the UI can be responsive while a pause
-        opcode is running."""
-        if self.running_task is not None:
-            try:
-                while True:
-                    next(self.running_task)
-            except StopIteration:
-                self.running_task = None
-
-                if (
-                    self.pending_command is not None
-                    and self.pending_command == self.command_entry.get_text()
-                ):
-                    cmd = self.pending_command
-                    self.pending_command = None
-                    self.queue_command(cmd)
-            except Exception as e:
-                self.game.output(str(e))
-        self.flush_output()
-        self.update_room_view()
-        False  # do not repeat
-
     def on_command_activate(self, data):
         """Handles a user-entered command when the user hits enter."""
         if not self.game.game_over:
@@ -355,23 +329,30 @@ class GameWindow(Gtk.Window):
             self.queue_command("SCORE")
 
 
-def on_activate(*args):
+def on_activate(app):
     if len(argv) >= 2:
         game_path = argv[1]
+        seed()
+        win = GameWindow(app, game_path)
+        win.connect("close-request", lambda *x: loop.stop())
+        win.present()
     else:
-        game_path = get_game_path()
+        loop.create_task(open_game_then_start(app))
 
+
+async def open_game_then_start(app):
+    game_path = await get_game_path()
     if game_path:
         seed()
-        win = GameWindow(game_path)
-        win.connect("delete-event", lambda *x: asyncio.get_running_loop().stop())
-        win.show_all()
+        win = GameWindow(app, game_path)
+        win.connect("close-request", lambda *x: loop.stop())
+        win.present()
     else:
         loop.stop()
 
 
 async def start():
-    app = Gio.Application()
+    app = Gtk.Application(application_id="org.scottdumb.app")
     app.connect("activate", on_activate)
     app.register()
     app.activate()
