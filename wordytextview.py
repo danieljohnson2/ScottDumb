@@ -1,142 +1,142 @@
-from gi.repository import Pango
-from gi.repository import Gdk
-from gi.repository import Gtk
+from PySide6.QtWidgets import QTextEdit, QMenu, QSizePolicy
+from PySide6.QtGui import QTextCharFormat, QTextCursor, QTextFormat
+from PySide6.QtCore import Qt
+
+WORD_ID_PROPERTY = QTextFormat.Property.UserProperty + 1
 
 
-class WordyTextView(Gtk.TextView):
-    def __init__(self, game, perform_command, **kwargs):
+class WordyTextView(QTextEdit):
+    def __init__(self, game, perform_command, auto_height=False, parent=None, **kwargs):
+        super().__init__(parent)
         self.game = game
         self.perform_command = perform_command
-        self.words_by_tag = {}
-        self.buffer = Gtk.TextBuffer()
-        Gtk.TextView.__init__(
-            self, buffer=self.buffer, editable=False, cursor_visible=False, **kwargs
-        )
-        self.set_wrap_mode(Gtk.WrapMode.WORD)
+        self.words_by_id = {}
+        self.next_word_id = 1
 
-        click_gesture = Gtk.GestureClick(button=1)
-        click_gesture.connect("pressed", self.on_pressed)
-        self.add_controller(click_gesture)
+        self.setReadOnly(True)
+        self.setMouseTracking(True)
 
-        motion_controller = Gtk.EventControllerMotion()
-        motion_controller.connect("motion", self.on_motion)
-        self.add_controller(motion_controller)
+        if "width_request" in kwargs:
+            self.setFixedWidth(kwargs["width_request"])
+
+        self.auto_height_mode = auto_height
+        if auto_height:
+            self.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+            )
+            self.setHorizontalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+            )
+            self.setSizePolicy(
+                QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+            )
+            self.document().documentLayout().documentSizeChanged.connect(
+                self._adjust_height
+            )
+
+    def _adjust_height(self, size):
+        h = int(size.height()) + self.frameWidth() * 2 + 2
+        self.setFixedHeight(max(h, 20))
 
     def append_line(self):
         """Adds a line break to the view. If it is now empty, this does nothing."""
-        iter = self.buffer.get_end_iter()
-        if self.buffer.get_char_count() > 0:
-            self.buffer.insert(iter, "\n")
+        if self.document().characterCount() > 1:
+            cursor = QTextCursor(self.document())
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            cursor.insertText("\n")
 
     def append_words(self, words):
         """
         Appends a sequence of words to the view. If there are any
-        active commands on any words, this will record takes for them and
+        active commands on any words, this will record tags for them and
         underline them so they can be handled.
         """
-
-        def get_tag(word):
-            if word.is_plain(self.game):
-                return None
-
-            if self.buffer in word.tags:
-                return word.tags[self.buffer]
-            else:
-                tag = Gtk.TextTag()
-                tag.set_property("underline", Pango.Underline.SINGLE)
-                self.buffer.get_tag_table().add(tag)
-                self.words_by_tag[tag] = word
-                word.tags[self.buffer] = tag
-                return tag
-
         words = list(words)
-        while len(words) > 0 and words[0].is_newline:
+        while words and words[0].is_newline:
             del words[0]
-
-        while len(words) > 0 and words[-1].is_newline:
+        while words and words[-1].is_newline:
             del words[-1]
 
-        iter = self.buffer.get_end_iter()
+        cursor = QTextCursor(self.document())
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+
         word_index = 0
         for word in words:
             if word_index > 0:
-                self.buffer.insert(iter, " ")
-            tag = get_tag(word)
-            if tag is None:
-                self.buffer.insert(iter, str(word))
+                cursor.insertText(" ")
+
+            fmt = self._get_format(word)
+            if fmt is None:
+                cursor.insertText(str(word))
             else:
-                self.buffer.insert_with_tags(iter, str(word), tag)
+                cursor.insertText(str(word), fmt)
 
             if word.is_newline:
                 word_index = 0
             else:
                 word_index += 1
 
+    def _get_format(self, word):
+        if word.is_plain(self.game):
+            return None
+
+        doc = self.document()
+        if doc in word.tags:
+            word_id = word.tags[doc]
+        else:
+            word_id = self.next_word_id
+            self.next_word_id += 1
+            self.words_by_id[word_id] = word
+            word.tags[doc] = word_id
+
+        fmt = QTextCharFormat()
+        fmt.setUnderlineStyle(QTextCharFormat.UnderlineStyle.SingleUnderline)
+        fmt.setProperty(WORD_ID_PROPERTY, word_id)
+        return fmt
+
     def clear(self):
         """Clears the text from this view."""
+        doc = self.document()
+        for word in self.words_by_id.values():
+            word.tags.pop(doc, None)
+        self.words_by_id = {}
+        self.next_word_id = 1
+        super().clear()
 
-        start = self.buffer.get_start_iter()
-        end = self.buffer.get_end_iter()
-        self.buffer.delete(start, end)
+    def _word_at_position(self, pos):
+        cursor = self.cursorForPosition(pos)
+        fmt = cursor.charFormat()
+        word_id = fmt.intProperty(WORD_ID_PROPERTY)
+        if word_id and word_id in self.words_by_id:
+            return self.words_by_id[word_id]
+        return None
 
-        tag_table = self.buffer.get_tag_table()
+    def mouseMoveEvent(self, event):
+        word = self._word_at_position(event.position().toPoint())
+        if word and not self.game.game_over:
+            commands = word.active_commands(self.game)
+            if commands:
+                self.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
+                return
+        self.viewport().setCursor(Qt.CursorShape.IBeamCursor)
+        super().mouseMoveEvent(event)
 
-        for tag in self.words_by_tag:
-            del self.words_by_tag[tag].tags[self.buffer]
-        self.words_by_tag = {}
-
-        tag_table.foreach(lambda tag: tag_table.remove(tag))
-
-    def on_motion(self, controller, mouse_x, mouse_y):
-        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, mouse_x, mouse_y)
-        found, i = self.get_iter_at_location(x, y)
-        if found and len(i.get_tags()) > 0 and not self.game.game_over:
-            cursor_name = "pointer"
-        else:
-            cursor_name = "text"
-        cursor = Gdk.Cursor.new_from_name(cursor_name, None)
-        self.set_cursor(cursor)
-
-    def on_pressed(self, click, count, click_x, click_y):
-        click.set_state(Gtk.EventSequenceState.CLAIMED)
-
-        if count != 1 or self.game.game_over:
+    def mousePressEvent(self, event):
+        if event.button() != Qt.MouseButton.LeftButton or self.game.game_over:
+            super().mousePressEvent(event)
             return
 
-        def on_menu_item_clicked(m, c):
-            self.perform_command(c)
-            menu.popdown()
+        word = self._word_at_position(event.position().toPoint())
+        if word:
+            commands = word.active_commands(self.game)
+            if commands:
+                menu = QMenu(self)
+                for cmd in commands:
+                    action = menu.addAction(cmd)
+                    action.triggered.connect(
+                        lambda checked, c=cmd: self.perform_command(c)
+                    )
+                menu.popup(event.globalPosition().toPoint())
+                return
 
-        def create_menu(commands):
-            menu = Gtk.Popover()
-            vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            vbox.set_spacing(3)
-            menu.set_parent(self)
-            menu.set_child(vbox)
-            for cmd in commands:
-                item = Gtk.Button(label=cmd)
-                item.add_css_class("flat")
-                item.add_css_class("menu-button")
-                vbox.append(item)
-                item.connect("clicked", on_menu_item_clicked, cmd)
-            return menu
-
-        x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, click_x, click_y)
-        found, i = self.get_iter_at_location(x, y)
-        if found:
-            for t in i.get_tags():
-                word = self.words_by_tag[t]
-                commands = word.active_commands(self.game)
-                if len(commands) > 0:
-                    start = i.copy()
-                    if not start.starts_word():
-                        start.backward_word_start()
-                    start_where = self.get_iter_location(start)
-                    end = i.copy()
-                    if not end.ends_word():
-                        end.forward_word_end()
-                    end_where = self.get_iter_location(end)
-                    menu = create_menu(commands)
-                    where = Gdk.Rectangle.union(start_where, end_where)
-                    menu.set_pointing_to(where)
-                    menu.popup()
+        super().mousePressEvent(event)

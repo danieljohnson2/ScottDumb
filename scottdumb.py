@@ -1,48 +1,35 @@
 #!/usr/bin/python3
-import gi
 import asyncio
-import os
 
-gi.require_version("Gtk", "4.0")
-gi.require_version("Gdk", "4.0")
-
-from gi.repository import GLib, Gtk, Gdk, Gio
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLineEdit,
+    QLabel,
+    QFrame,
+    QMessageBox,
+    QSizePolicy,
+)
+from PySide6.QtCore import QTimer
 from game import Game
 from extraction import ExtractedFile
 from wordytextview import WordyTextView
-from contextlib import contextmanager
-from gui.filedialog import make_filter
+from gui.filedialog import file_dialog_open, file_dialog_save
 from gui.mainloop import run
 
 from sys import argv
 from random import seed
 
 
-@contextmanager
-def error_alert(window, text):
-    dlg = Gtk.MessageDialog(
-        transient_for=window,
-        message_type=Gtk.MessageType.ERROR,
-        buttons=Gtk.ButtonsType.CANCEL,
-        text=text,
-    )
-    try:
-        yield dlg
-    finally:
-        dlg.destroy()
+GAME_FILTERS = ["Games (*.dat)", "All Files (*)"]
+SAVE_FILTERS = ["Saved Games (*.sav)", "All Files (*)"]
 
 
 async def get_game_path():
-    dlg = Gtk.FileDialog(title="Game")
-    filters = Gio.ListStore()
-    filters.append(make_filter("Games", "*.dat"))
-    filters.append(make_filter("All Files", "*"))
-    dlg.set_filters(filters)
-    file = await dlg.open_async(None)
-    if file:
-        return file.get_path()
-    else:
-        return None
+    return await file_dialog_open(None, "Open Game", GAME_FILTERS)
 
 
 class GuiGame(Game):
@@ -57,113 +44,106 @@ class GuiGame(Game):
         self.window.update_room_view()
 
     async def get_save_game_path(self):
-        dlg = Gtk.FileDialog(title="Save Game")
-        dlg.set_accept_label("Save")
-        filters = Gio.ListStore()
-        filters.append(make_filter("Saved Games", "*.sav"))
-        filters.append(make_filter("All Files", "*"))
-        dlg.set_filters(filters)
-        file = await dlg.save_async(None)
-        if file:
-            return file.get_path()
-        else:
-            return None
+        return await file_dialog_save(self.window, "Save Game", SAVE_FILTERS)
 
     async def get_load_game_path(self):
-        dlg = Gtk.FileDialog(title="Save Game")
-        dlg.set_accept_label("Load")
-        filters = Gio.ListStore()
-        filters.append(make_filter("Saved Games", "*.sav"))
-        filters.append(make_filter("All Files", "*"))
-        dlg.set_filters(filters)
-        file = await dlg.open_async(None)
-        if file:
-            return file.get_path()
-        else:
-            return None
+        return await file_dialog_open(self.window, "Load Game", SAVE_FILTERS)
 
 
-class GameWindow(Gtk.Window):
+class GameWindow(QMainWindow):
     """
     This window displays the game output in two sections; a top section shows
     the room description, and the lower shows the transcript as you go. An text
-    entry area allows command input, and a header bar lets you load and save your game.
+    entry area allows command input, and a toolbar lets you load and save your game.
     """
 
     def __init__(self, game_file):
-        Gtk.Window.__init__(self)
+        super().__init__()
+        self.setWindowTitle("Scott Dumb")
 
         with open(game_file, "r") as f:
             self.game = GuiGame(ExtractedFile(f), self)
 
-        title_label = Gtk.Label(label="Scott Dumb")
-        title_label.add_css_class("title")
+        # Toolbar with Load / Save
+        toolbar = self.addToolBar("Main")
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)
 
-        self.header_bar = Gtk.HeaderBar()
-        self.header_bar.set_title_widget(title_label)
+        load_action = toolbar.addAction("&Load")
+        load_action.triggered.connect(self.on_load_game)
 
-        self.load_button = Gtk.Button(label="_Load", use_underline=True)
-        self.load_button.connect("clicked", self.on_load_game)
-        self.header_bar.pack_start(self.load_button)
+        spacer = QWidget()
+        spacer.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+        toolbar.addWidget(spacer)
 
-        self.save_button = Gtk.Button(label="_Save", use_underline=True)
-        self.save_button.connect("clicked", self.on_save_game)
-        self.header_bar.pack_end(self.save_button)
+        save_action = toolbar.addAction("&Save")
+        save_action.triggered.connect(self.on_save_game)
 
-        self.set_titlebar(self.header_bar)
+        # Central widget
+        central = QWidget()
+        self.setCentralWidget(central)
+        main_layout = QVBoxLayout(central)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        self.room_view = WordyTextView(self.game, self.queue_command)
-        #   self.room_view.connect("size-allocate", self.on_room_view_size_allocate)
+        # Room view (auto-sizes to content, no scrolling)
+        self.room_view = WordyTextView(
+            self.game, self.queue_command, auto_height=True
+        )
+        main_layout.addWidget(self.room_view)
+
+        sep1 = QFrame()
+        sep1.setFrameShape(QFrame.Shape.HLine)
+        sep1.setFrameShadow(QFrame.Shadow.Sunken)
+        main_layout.addWidget(sep1)
+
+        # Middle area: script transcript + inventory
+        mid_layout = QHBoxLayout()
 
         self.script_view = WordyTextView(self.game, self.queue_command)
+        mid_layout.addWidget(self.script_view, stretch=1)
+
+        sep2 = QFrame()
+        sep2.setFrameShape(QFrame.Shape.VLine)
+        sep2.setFrameShadow(QFrame.Shadow.Sunken)
+        mid_layout.addWidget(sep2)
 
         self.inventory_view = WordyTextView(
             self.game, self.queue_command, width_request=300
         )
+        mid_layout.addWidget(self.inventory_view)
 
-        vBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, vexpand=True)
-        vBox.append(self.room_view)
-        vBox.append(Gtk.Separator())
+        main_layout.addLayout(mid_layout, stretch=1)
 
-        self.command_box = Gtk.Box(
-            orientation=Gtk.Orientation.HORIZONTAL,
-            spacing=5,
-            margin_top=5,
-            margin_bottom=5,
-        )
+        # Command entry area
+        self.command_widget = QWidget()
+        cmd_layout = QHBoxLayout(self.command_widget)
+        cmd_layout.setContentsMargins(5, 5, 5, 5)
 
-        command_label = Gtk.Label(label=">")
-        command_label.set_margin_start(5)
-        self.command_entry = Gtk.Entry(hexpand=True)
-        self.command_entry.connect("activate", self.on_command_activate)
+        cmd_label = QLabel(">")
+        cmd_layout.addWidget(cmd_label)
 
-        score_button = Gtk.Button(
-            label="_Score", use_underline=True, halign=Gtk.Align.END
-        )
-        score_button.connect("clicked", self.on_score)
-        score_button.set_margin_end(5)
-        self.command_box.append(command_label)
-        self.command_box.append(self.command_entry)
-        self.command_box.append(score_button)
+        self.command_entry = QLineEdit()
+        self.command_entry.returnPressed.connect(self.on_command_activate)
+        cmd_layout.addWidget(self.command_entry, stretch=1)
 
-        self.scroller = Gtk.ScrolledWindow(hexpand=True)
-        self.scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.scroller.set_child(self.script_view)
+        score_button = QPushButton("&Score")
+        score_button.clicked.connect(self.on_score)
+        cmd_layout.addWidget(score_button)
 
-        hBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, vexpand=True)
-        hBox.append(self.scroller)
-        hBox.append(Gtk.Separator())
-        hBox.append(self.inventory_view)
-        vBox.append(hBox)
-        vBox.append(self.command_box)
+        main_layout.addWidget(self.command_widget)
 
-        self.set_child(vBox)
-
-        self.set_default_size(900, 500)
+        self.resize(900, 500)
 
         self.running_task = None
-        self.start_task(self.before_turn())
         self.pending_command = None
+        self.start_task(self.before_turn())
+
+    def closeEvent(self, event):
+        asyncio.get_running_loop().stop()
+        event.accept()
 
     def start_task(self, coro):
         task = asyncio.get_running_loop().create_task(coro)
@@ -175,7 +155,7 @@ class GameWindow(Gtk.Window):
             if (
                 self.running_task is None
                 and self.pending_command is not None
-                and self.pending_command == self.command_entry.get_text()
+                and self.pending_command == self.command_entry.text()
             ):
                 cmd = self.pending_command
                 self.pending_command = None
@@ -200,13 +180,13 @@ class GameWindow(Gtk.Window):
         """Scrolls the output window as far down as possible."""
 
         def do_scroll():
-            adj = self.scroller.get_vadjustment()
-            adj.set_value(adj.get_upper())
+            scrollbar = self.script_view.verticalScrollBar()
+            scrollbar.setValue(scrollbar.maximum())
 
         do_scroll()
-        # Scrolling may fail because the wigdets are not laid out yet;
+        # Scrolling may fail because the widgets are not laid out yet;
         # so this will try to do it again a little later.
-        GLib.idle_add(do_scroll)
+        QTimer.singleShot(0, do_scroll)
 
     def update_room_view(self):
         """
@@ -221,7 +201,7 @@ class GameWindow(Gtk.Window):
             game.needs_room_update = False
             game.wants_room_update = False
 
-        self.command_box.set_sensitive(not game.game_over)
+        self.command_widget.setEnabled(not game.game_over)
         self.update_inventory_view()
 
     def update_inventory_view(self):
@@ -238,7 +218,7 @@ class GameWindow(Gtk.Window):
 
         if not game.game_over:
             await game.perform_occurances()
-            self.command_entry.grab_focus()
+            self.command_entry.setFocus()
 
         self.flush_output()
         self.update_room_view()
@@ -249,11 +229,11 @@ class GameWindow(Gtk.Window):
 
         asyncio.create_task(scroll())
 
-    def on_load_game(self, data):
+    def on_load_game(self):
         """Handles the load game button."""
-        asyncio.get_running_loop().create_task(self.do_on_load_game(data))
+        asyncio.get_running_loop().create_task(self.do_on_load_game())
 
-    async def do_on_load_game(self, data):
+    async def do_on_load_game(self):
         game = self.game
         if await game.load_game():
             self.pending_command = None
@@ -263,15 +243,20 @@ class GameWindow(Gtk.Window):
             game.output_line("Game loaded.")
             self.flush_output()
             self.update_room_view()
-            self.command_entry.grab_focus()
+            self.command_entry.setFocus()
 
-    def on_save_game(self, data):
+    def on_save_game(self):
         """Handles the save game button."""
         if self.running_task is not None:
-            with error_alert(self, "You cannot save now.") as dlg:
-                dlg.format_secondary_text(
-                    "You cannot save the game while game actions are happening."
-                )
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Critical)
+            msg.setWindowTitle("Error")
+            msg.setText("You cannot save now.")
+            msg.setInformativeText(
+                "You cannot save the game while game actions are happening."
+            )
+            msg.addButton(QMessageBox.StandardButton.Ok)
+            msg.open()
             return
 
         asyncio.get_running_loop().create_task(self.game.save_game())
@@ -287,7 +272,7 @@ class GameWindow(Gtk.Window):
             self.start_task(self.do_command(cmd))
         else:
             self.pending_command = cmd
-            self.command_entry.set_text(cmd)
+            self.command_entry.setText(cmd)
 
     def cancel_commands(self):
         """This terminates all running and pending command
@@ -301,7 +286,7 @@ class GameWindow(Gtk.Window):
         echos it to the output, then starts it executing."""
         game = self.game
         try:
-            self.command_entry.set_text("")
+            self.command_entry.setText("")
             verb, noun = game.parse_command(cmd)
             game.output_line("> " + cmd)
             self.flush_output()
@@ -312,13 +297,13 @@ class GameWindow(Gtk.Window):
 
         await self.before_turn()
 
-    def on_command_activate(self, data):
+    def on_command_activate(self):
         """Handles a user-entered command when the user hits enter."""
         if not self.game.game_over:
-            cmd = self.command_entry.get_text()
+            cmd = self.command_entry.text()
             self.queue_command(cmd)
 
-    def on_score(self, data):
+    def on_score(self):
         """Generates the score command"""
         if not self.game.game_over:
             self.queue_command("SCORE")
@@ -332,17 +317,8 @@ async def start_game():
 
     if game_path:
         seed()
-        path = os.path.dirname(__file__)
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_path(os.path.join(path, "scottdumb.css"))
         win = GameWindow(game_path)
-        display = Gdk.Display.get_default()
-        Gtk.StyleContext.add_provider_for_display(
-            display, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
-
-        win.connect("close-request", lambda *x: asyncio.get_running_loop().stop())
-        win.set_visible(True)
+        win.show()
     else:
         asyncio.get_running_loop().stop()
 
