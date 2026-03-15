@@ -181,7 +181,8 @@ class Logic:
             game.counter.value -= counter_value
 
         def decrement_counter():
-            game.counter.value -= 1
+            if game.counter.value > 0:
+                game.counter.value -= 1
 
         def print_counter():
             game.output(f"{game.counter.value} ")

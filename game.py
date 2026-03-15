@@ -114,7 +114,7 @@ class Game:
         self.items = []
         for ei in extracted.items:
             item = Item(self, ei)
-            if ei.starting_room == -1:
+            if ei.starting_room in (-1, 255):
                 item.starting_room = self.inventory
             elif ei.starting_room == 0:
                 item.starting_room = None
@@ -304,7 +304,7 @@ class Game:
         logic that handles events other that carrying out commands.
         """
 
-        if self.lamp_item.room is not None and self.light_remaining > 0:
+        if self.lamp_item.room is not None and self.light_remaining > 0 and self.light_duration >= 0:
             self.light_remaining -= 1
             if self.light_remaining <= 0:
                 self.lamp_exhausted_flag.state = True
@@ -494,7 +494,7 @@ class Game:
         """
 
         def find_room(index):
-            if index == -1:
+            if index in (-1, 255):
                 return self.inventory
             elif index == 0:
                 return None
