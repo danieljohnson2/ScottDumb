@@ -143,12 +143,15 @@ class WordyTextView(Gtk.TextView):
                     start = i.copy()
                     if not start.starts_word():
                         start.backward_word_start()
-                    start_where = self.get_iter_location(start)
+                    start_buf = self.get_iter_location(start)
                     end = i.copy()
                     if not end.ends_word():
                         end.forward_word_end()
-                    end_where = self.get_iter_location(end)
+                    end_buf = self.get_iter_location(end)
+                    where = Gdk.Rectangle.union(start_buf, end_buf)
+                    where.x, where.y = self.buffer_to_window_coords(
+                        Gtk.TextWindowType.TEXT, where.x, where.y
+                    )
                     menu = create_menu(commands)
-                    where = Gdk.Rectangle.union(start_where, end_where)
                     menu.set_pointing_to(where)
                     menu.popup()
