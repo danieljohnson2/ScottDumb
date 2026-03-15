@@ -110,5 +110,8 @@ venv.bak/
 # Local documentation copies
 docs
 
+# Game data files (copyrighted)
+games
+
 # Saved games
 *.sav
