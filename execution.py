@@ -49,9 +49,12 @@ class Logic:
         by verb and noun. Also checks availability."""
         return False
 
-    def check_available_command(self, noun):
-        """True if this is a command to handle the user command indicated
-        by noun only. Also checks availability."""
+    def check_available_noun(self, noun):
+        """True if this is a command that uses the given noun. Also checks availability."""
+        return False
+
+    def check_available_verb(self, verb):
+        """True if this is a command that uses the given verb. Also checks availability."""
         return False
 
     @property
@@ -365,8 +368,11 @@ class Command(Logic):
                 return self.is_available
         return False
 
-    def check_available_command(self, noun):
+    def check_available_noun(self, noun):
         return self.noun == noun and self.is_available
+
+    def check_available_verb(self, verb):
+        return self.verb == verb and self.noun is None and self.is_available
 
 
 class Continuation(Logic):

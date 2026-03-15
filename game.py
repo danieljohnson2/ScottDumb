@@ -1,3 +1,4 @@
+import re
 from execution import Occurance, Command, Continuation
 
 
@@ -639,9 +640,27 @@ class Room(GameObject):
         ):
             return [OutputWord("It is too dark to see!")]
 
-        words = [OutputWord(self.description)]
-
         items = self.get_items()
+
+        # Collect nouns already covered by visible items or exits
+        covered_nouns = set()
+        for item in items:
+            for w in item.command_words:
+                covered_nouns.add(w)
+        for d in self.game.directions:
+            covered_nouns.add(d)
+
+        words = []
+        for token in self.description.split():
+            normalized = self.game.normalize_word(clean_word(token))
+            noun = self.game.nouns.get(normalized)
+            verb = self.game.verbs.get(normalized)
+            if noun is not None and noun not in covered_nouns:
+                words.append(OutputWord(token, vocab_noun=noun))
+            elif verb is not None and verb != self.game.go_word and verb != self.game.get_word and verb != self.game.drop_word:
+                words.append(OutputWord(token, vocab_verb=verb))
+            else:
+                words.append(OutputWord(token))
         if len(items) > 0:
             words.append(OutputWord("\n"))
             words.append(OutputWord("\n"))
@@ -733,11 +752,21 @@ class Counter:
         self.value = tmp
 
 
+_clean_word_re = re.compile(r'^[^a-zA-Z0-9]*(.*?)[^a-zA-Z0-9]*$')
+
+
+def clean_word(text):
+    """Strips leading and trailing non-alphanumeric characters from a word."""
+    return _clean_word_re.match(text).group(1)
+
+
 class OutputWord:
-    def __init__(self, text, item=None, direction=None):
+    def __init__(self, text, item=None, direction=None, vocab_noun=None, vocab_verb=None):
         self.text = text
         self.item = item
         self.direction = direction
+        self.vocab_noun = vocab_noun
+        self.vocab_verb = vocab_verb
         self.tags = {}
 
     def is_plain(self, game):
@@ -760,7 +789,7 @@ class OutputWord:
                         commands.append("GET " + command_name)
 
                 for cmd in game.commands:
-                    if cmd.check_available_command(command_word):
+                    if cmd.check_available_noun(command_word):
                         command = str(cmd.verb) + " " + command_name
                         if command not in commands:
                             commands.append(command)
@@ -768,6 +797,23 @@ class OutputWord:
             return commands
         elif self.direction is not None:
             return [str(self)]
+        elif self.vocab_noun is not None:
+            clean = clean_word(self.text).upper()
+            commands = []
+            for cmd in game.commands:
+                if cmd.check_available_noun(self.vocab_noun):
+                    command = str(cmd.verb) + " " + clean
+                    if command not in commands:
+                        commands.append(command)
+            return commands
+        elif self.vocab_verb is not None:
+            clean = clean_word(self.text).upper()
+            commands = []
+            for cmd in game.commands:
+                if cmd.check_available_verb(self.vocab_verb):
+                    commands.append(clean)
+                    break
+            return commands
         else:
             return []
 
