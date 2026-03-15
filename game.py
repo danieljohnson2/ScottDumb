@@ -176,10 +176,22 @@ class Game:
 
         self.output_words = []
 
+    def enrich_word(self, token, excluded_nouns=None):
+        """Creates an OutputWord for a token, enriching it with vocab matches."""
+        normalized = self.normalize_word(clean_word(token))
+        noun = self.nouns.get(normalized)
+        verb = self.verbs.get(normalized)
+        if noun is not None and (excluded_nouns is None or noun not in excluded_nouns):
+            return OutputWord(token, vocab_noun=noun)
+        elif verb is not None and verb != self.go_word and verb != self.get_word and verb != self.drop_word:
+            return OutputWord(token, vocab_verb=verb)
+        else:
+            return OutputWord(token)
+
     def output(self, text):
         """Adds text to the output buffer, with no newline."""
         for part in text.split():
-            self.output_word(OutputWord(part))
+            self.output_word(self.enrich_word(part))
 
     def output_line(self, line=""):
         """Adds text to the output buffer, followed by a newline."""
@@ -652,15 +664,7 @@ class Room(GameObject):
 
         words = []
         for token in self.description.split():
-            normalized = self.game.normalize_word(clean_word(token))
-            noun = self.game.nouns.get(normalized)
-            verb = self.game.verbs.get(normalized)
-            if noun is not None and noun not in covered_nouns:
-                words.append(OutputWord(token, vocab_noun=noun))
-            elif verb is not None and verb != self.game.go_word and verb != self.game.get_word and verb != self.game.drop_word:
-                words.append(OutputWord(token, vocab_verb=verb))
-            else:
-                words.append(OutputWord(token))
+            words.append(self.game.enrich_word(token, covered_nouns))
         if len(items) > 0:
             words.append(OutputWord("\n"))
             words.append(OutputWord("\n"))

@@ -72,6 +72,14 @@ class WordyTextView(Gtk.TextView):
             else:
                 word_index += 1
 
+    def refresh_underlines(self):
+        """Hides underlines on words whose commands are no longer available."""
+        for tag, word in self.words_by_tag.items():
+            if word.is_plain(self.game):
+                tag.set_property("underline", Pango.Underline.NONE)
+            else:
+                tag.set_property("underline", Pango.Underline.SINGLE)
+
     def clear(self):
         """Clears the text from this view."""
 
@@ -90,10 +98,14 @@ class WordyTextView(Gtk.TextView):
     def on_motion(self, controller, mouse_x, mouse_y):
         x, y = self.window_to_buffer_coords(Gtk.TextWindowType.TEXT, mouse_x, mouse_y)
         found, i = self.get_iter_at_location(x, y)
-        if found and len(i.get_tags()) > 0 and not self.game.game_over:
-            cursor_name = "pointer"
-        else:
-            cursor_name = "text"
+        has_commands = False
+        if found and not self.game.game_over:
+            for t in i.get_tags():
+                word = self.words_by_tag.get(t)
+                if word is not None and not word.is_plain(self.game):
+                    has_commands = True
+                    break
+        cursor_name = "pointer" if has_commands else "text"
         cursor = Gdk.Cursor.new_from_name(cursor_name, None)
         self.set_cursor(cursor)
 

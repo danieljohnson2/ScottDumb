@@ -191,6 +191,7 @@ class GameWindow(Gtk.Window):
         """
         words = self.game.extract_output()
 
+        self.script_view.refresh_underlines()
         if len(words) > 0:
             self.script_view.append_line()
             self.script_view.append_words(words)
