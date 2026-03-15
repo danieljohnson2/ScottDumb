@@ -325,6 +325,9 @@ class Logic:
                 await asyncio.sleep(2.0)
 
             return wait
+        if op == 89:
+            picture = value_source()
+            raise NotImplementedError(f"Action 89: SAGA graphics not supported (picture {picture})")
         if op >= 102:
             return lambda: game.output_line(game.messages[op - 50])
         return undefined()
