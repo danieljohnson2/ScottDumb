@@ -397,7 +397,7 @@ class Game:
         score = int(treasures_found * 100 / self.treasure_count)
         self.output_line(f"I stored {treasures_found} treasures.")
         self.output_line(f"On a scale of 0-100, that's: {score}")
-        if score == 100 and self.player_room == self.treasure_room:
+        if score == 100:
             self.game_over = True
 
     def get_inventory_words(self):
