@@ -310,9 +310,9 @@ class Logic:
             counter_value = value_source()
             return subtract_counter
         if op == 84:
-            return lambda: game.output(game.parsed_noun)
+            return lambda: game.output(game.parsed_noun or "")
         if op == 85:
-            return lambda: game.output_line(game.parsed_noun)
+            return lambda: game.output_line(game.parsed_noun or "")
         if op == 86:
             return lambda: game.output_line()
         if op == 87:
