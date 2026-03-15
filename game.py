@@ -174,6 +174,15 @@ class Game:
                     ):
                         nm.command_words.add(n)
 
+        # Scan item descriptions for vocabulary nouns that don't match
+        # any existing command word — e.g. "say BUNYON" in the axe description.
+        for item in self.items:
+            for token in item.description.split():
+                normalized = self.normalize_word(clean_word(token))
+                noun = self.nouns.get(normalized)
+                if noun is not None and noun not in self.directions and noun not in item.command_words:
+                    item.command_words.add(noun)
+
         self.output_words = []
 
     def enrich_word(self, token, excluded_nouns=None):
