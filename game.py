@@ -135,20 +135,20 @@ class Game:
         self.occurances = []
         self.commands = []
 
-        contining_action = True
+        continuing_action = True
         for ea in extracted.actions:
             if ea.verb == 0:
                 if ea.noun == 0:
-                    if contining_action:
+                    if continuing_action:
                         self.commands.append(Continuation(self, ea))
                     else:
                         self.occurances.append(Continuation(self, ea))
                 else:
                     self.occurances.append(Occurance(self, ea))
-                    contining_action = False
+                    continuing_action = False
             else:
                 self.commands.append(Command(self, extracted, ea))
-                contining_action = True
+                continuing_action = True
 
         # try to assign command-words where we can find 'em, so items
         # you can't carry can still be clicked.
@@ -304,10 +304,12 @@ class Game:
         logic that handles events other that carrying out commands.
         """
 
-        if self.lamp_item.room == self.inventory and self.light_remaining > 0:
+        if self.lamp_item.room is not None and self.light_remaining > 0:
             self.light_remaining -= 1
             if self.light_remaining <= 0:
                 self.lamp_exhausted_flag.state = True
+                self.lamp_item.room = None
+                self.needs_room_update = True
 
         self.continuing_commands = False
 
